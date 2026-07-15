@@ -334,8 +334,8 @@ async function loadPrograms(){
 }
 
 /* ===== gate: correo + código OTP vía Supabase, restringido a un dominio ===== */
-const SUPABASE_URL = "REEMPLAZA_CON_TU_SUPABASE_URL";       // Settings > API > Project URL
-const SUPABASE_ANON_KEY = "REEMPLAZA_CON_TU_SUPABASE_ANON_KEY"; // Settings > API > anon public key
+const SUPABASE_URL = "https://xikhqdedhgeapczmnguy.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhpa2hxZGVkaGdlYXBjem1uZ3V5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxNDcwMzYsImV4cCI6MjA5OTcyMzAzNn0.3x7Yf527cIuQ1dkSK_uonnNMCW94tGkgcH39cqHqUUI";
 const ALLOWED_DOMAIN = "intruckscorp.com";
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
