@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InTrucks · Buscador de Guidelines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat+Alternates:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal:#399b80;
+    --navy:#00347c;
+    --teal-soft:#e4f3ee;
+    --navy-soft:#e8edf7;
+    --ink:#12203a;
+    --muted:#5b6b85;
+    --line:#dde3ee;
+    --bg:#f6f8fb;
+    --card:#ffffff;
+    --good:#1f9d63;
+    --good-bg:#e6f7ee;
+    --warn:#b8860b;
+    --warn-bg:#fdf3dc;
+    --bad:#c23b3b;
+    --bad-bg:#fbe9e9;
+    --grad: linear-gradient(120deg, var(--teal) 0%, var(--navy) 100%);
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.brand{font-family:'Montserrat Alternates',sans-serif;}
+  ::selection{background:var(--teal-soft);}
+  body{user-select:text;}
+
+  /* ---------- Gate ---------- */
+  #gate{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:var(--grad);z-index:100;padding:24px;
+  }
+  .gate-card{
+    background:var(--card);border-radius:20px;padding:40px 36px;max-width:400px;width:100%;
+    box-shadow:0 30px 60px rgba(0,20,50,.35);text-align:center;
+  }
+  .gate-card .mark{
+    width:56px;height:56px;border-radius:14px;background:var(--grad);margin:0 auto 18px;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px;
+    font-family:'Montserrat Alternates',sans-serif;
+  }
+  .gate-card h1{font-size:20px;margin:0 0 6px;color:var(--navy);}
+  .gate-card p{font-size:13.5px;color:var(--muted);margin:0 0 22px;line-height:1.5;}
+  .gate-card input{
+    width:100%;padding:13px 14px;border-radius:10px;border:1.5px solid var(--line);
+    font-size:15px;text-align:center;letter-spacing:2px;font-family:'Inter',sans-serif;
+    outline:none;transition:border-color .15s;
+  }
+  .gate-card input:focus{border-color:var(--teal);}
+  .gate-card button{
+    margin-top:14px;width:100%;padding:13px;border:none;border-radius:10px;background:var(--grad);
+    color:#fff;font-weight:600;font-size:14.5px;cursor:pointer;transition:opacity .15s;
+    font-family:'Inter',sans-serif;
+  }
+  .gate-card button:hover{opacity:.92;}
+  .gate-err{color:var(--bad);font-size:12.5px;margin-top:10px;min-height:16px;}
+  .gate-note{font-size:11px;color:#9aa6bd;margin-top:18px;line-height:1.5;}
+
+  /* ---------- App ---------- */
+  #app{display:none;min-height:100vh;}
+  header.top{
+    background:var(--grad);color:#fff;padding:22px 28px;display:flex;align-items:center;
+    justify-content:space-between;flex-wrap:wrap;gap:10px;
+  }
+  .top-left{display:flex;align-items:center;gap:12px;}
+  .top-left .mark{
+    width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.18);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;
+  }
+  header.top h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.2px;}
+  header.top .sub{font-size:12px;opacity:.85;margin-top:2px;font-family:'Inter',sans-serif;}
+  .confidential{
+    font-size:11px;background:rgba(255,255,255,.16);padding:6px 12px;border-radius:20px;
+    display:flex;align-items:center;gap:6px;
+  }
+  .confidential .dot{width:6px;height:6px;border-radius:50%;background:#ffd166;}
+
+  main{max-width:1180px;margin:0 auto;padding:26px 20px 70px;}
+
+  .layout{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start;}
+  @media (max-width:900px){.layout{grid-template-columns:1fr;}}
+
+  .panel{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px;position:sticky;top:20px;
+  }
+  @media (max-width:900px){.panel{position:static;}}
+  .panel h2{font-size:15px;margin:0 0 4px;color:var(--navy);}
+  .panel .hint{font-size:12px;color:var(--muted);margin:0 0 18px;line-height:1.5;}
+
+  .field{margin-bottom:16px;}
+  .field label{
+    display:block;font-size:12px;font-weight:600;color:var(--ink);margin-bottom:6px;
+  }
+  .field .opt{font-weight:400;color:#9aa6bd;font-size:11px;}
+  select,input[type=number]{
+    width:100%;padding:10px 12px;border-radius:9px;border:1.5px solid var(--line);
+    font-size:13.5px;font-family:'Inter',sans-serif;outline:none;background:#fff;color:var(--ink);
+    transition:border-color .15s;
+  }
+  select:focus,input[type=number]:focus{border-color:var(--teal);}
+  .toggle-row{display:flex;gap:8px;}
+  .toggle-btn{
+    flex:1;padding:9px 6px;border-radius:9px;border:1.5px solid var(--line);background:#fff;
+    font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;
+    transition:all .15s;
+  }
+  .toggle-btn.active{border-color:var(--teal);background:var(--teal-soft);color:var(--teal);}
+  .toggle-btn:hover{border-color:var(--teal);}
+
+  .search-btn{
+    width:100%;padding:13px;border:none;border-radius:10px;background:var(--grad);
+    color:#fff;font-weight:700;font-size:14px;cursor:pointer;margin-top:6px;
+    font-family:'Inter',sans-serif;letter-spacing:.2px;
+  }
+  .search-btn:hover{opacity:.93;}
+  .reset-link{
+    display:block;text-align:center;margin-top:10px;font-size:12px;color:var(--muted);
+    cursor:pointer;text-decoration:underline;
+  }
+
+  /* results */
+  .results-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+  .results-head h2{font-size:16px;margin:0;color:var(--navy);}
+  .results-count{font-size:12.5px;color:var(--muted);}
+
+  .empty-state{
+    background:var(--card);border:1px dashed var(--line);border-radius:var(--radius);
+    padding:60px 30px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.6;
+  }
+  .empty-state .icn{font-size:34px;margin-bottom:10px;}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    margin-bottom:14px;overflow:hidden;
+  }
+  .card-head{
+    padding:16px 18px;display:flex;align-items:center;justify-content:space-between;
+    cursor:pointer;gap:12px;
+  }
+  .card-head-left{display:flex;align-items:center;gap:12px;min-width:0;}
+  .gauge{
+    width:44px;height:44px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:12px;font-family:'Montserrat Alternates',sans-serif;color:#fff;
+  }
+  .gauge.g-full{background:var(--good);}
+  .gauge.g-partial{background:var(--warn);}
+  .gauge.g-low{background:var(--bad);}
+  .card-title{font-size:14.5px;font-weight:700;color:var(--ink);}
+  .card-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .card-chip{
+    font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;white-space:nowrap;
+  }
+  .chip-full{background:var(--good-bg);color:var(--good);}
+  .chip-partial{background:var(--warn-bg);color:var(--warn);}
+  .chip-low{background:var(--bad-bg);color:var(--bad);}
+  .chevron{color:#b7c0d4;font-size:13px;transition:transform .2s;flex:none;}
+  .card.open .chevron{transform:rotate(180deg);}
+
+  .card-body{max-height:0;overflow:hidden;transition:max-height .25s ease;border-top:1px solid transparent;}
+  .card.open .card-body{max-height:900px;border-top:1px solid var(--line);}
+  .grid-crit{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;
+    padding:16px 18px;
+  }
+  .crit{
+    background:#f8fafc;border-radius:9px;padding:9px 11px;font-size:12px;
+  }
+  .crit .k{color:var(--muted);display:block;margin-bottom:2px;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;}
+  .crit .v{font-weight:600;color:var(--ink);}
+  .crit.match{background:var(--good-bg);}
+  .crit.match .v{color:var(--good);}
+  .crit.mismatch{background:var(--bad-bg);}
+  .crit.mismatch .v{color:var(--bad);}
+  .note{
+    margin:0 18px 16px;padding:12px 14px;background:var(--navy-soft);border-radius:9px;
+    font-size:12.5px;color:var(--navy);line-height:1.55;
+  }
+  .note b{font-family:'Montserrat Alternates',sans-serif;}
+
+  footer.legal{
+    max-width:1180px;margin:10px auto 0;padding:0 20px 40px;font-size:11px;color:#9aa6bd;
+    line-height:1.6;text-align:center;
+  }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-card">
+    <div class="mark">IT</div>
+    <h1>Buscador de Guidelines</h1>
+    <p id="gateStep1Text">Ingresa tu correo @intruckscorp.com para recibir un código de acceso de un solo uso.</p>
+
+    <div id="gateStepEmail">
+      <input id="gateEmail" type="email" placeholder="tunombre@intruckscorp.com" autocomplete="off">
+      <button onclick="sendCode()">Enviar código</button>
+    </div>
+
+    <div id="gateStepCode" style="display:none;">
+      <input id="gateCode" type="text" maxlength="6" placeholder="Código de 6 dígitos" autocomplete="off" inputmode="numeric">
+      <button onclick="verifyCode()">Verificar e ingresar</button>
+      <span class="reset-link" onclick="backToEmail()">Usar otro correo</span>
+      <span class="reset-link" onclick="sendCode(true)">Reenviar código</span>
+    </div>
+
+    <div class="gate-err" id="gateErr"></div>
+    <div class="gate-note">Uso exclusivo del equipo comercial de InTrucks Corp. El acceso se otorga solo a correos con dominio @intruckscorp.com. Si sales de la compañía, tu acceso puede revocarse desde el panel de administración.</div>
+  </div>
+</div>
+
+<div id="app">
+  <header class="top">
+    <div class="top-left">
+      <div class="mark">IT</div>
+      <div>
+        <h1>Buscador de Guidelines</h1>
+        <div class="sub">Elegibilidad por aseguradora · Equipo Comercial InTrucks</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="confidential"><span class="dot"></span> Información confidencial — uso interno</div>
+      <span class="confidential" style="cursor:pointer;" onclick="signOut()">Cerrar sesión</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="layout">
+      <aside class="panel">
+        <h2>Cuéntanos del riesgo</h2>
+        <p class="hint">Completa lo que sepas del cliente. Entre más datos ingreses, más preciso será el resultado.</p>
+
+        <div class="field">
+          <label>Estado de operación <span class="opt">requerido</span></label>
+          <select id="fState"><option value="">Selecciona un estado…</option></select>
+        </div>
+
+        <div class="field">
+          <label>Tipo de unidad <span class="opt">opcional</span></label>
+          <select id="fUnit"><option value="">Cualquiera</option></select>
+        </div>
+
+        <div class="field">
+          <label>Tipo de carga / operación <span class="opt">opcional</span></label>
+          <select id="fCargo"><option value="">Cualquiera</option></select>
+        </div>
+
+        <div class="field">
+          <label>Años en el negocio <span class="opt">opcional</span></label>
+          <input type="number" id="fYears" min="0" placeholder="Ej: 3">
+        </div>
+
+        <div class="field">
+          <label>Experiencia del conductor (años) <span class="opt">opcional</span></label>
+          <input type="number" id="fExp" min="0" placeholder="Ej: 2">
+        </div>
+
+        <div class="field">
+          <label>Edad del conductor <span class="opt">opcional</span></label>
+          <input type="number" id="fAge" min="16" max="99" placeholder="Ej: 34">
+        </div>
+
+        <div class="field">
+          <label>Violaciones en MVR <span class="opt">opcional</span></label>
+          <input type="number" id="fMvr" min="0" placeholder="Ej: 1">
+        </div>
+
+        <div class="field">
+          <label>¿Team driving?</label>
+          <div class="toggle-row">
+            <div class="toggle-btn" data-group="team" data-val="">Indistinto</div>
+            <div class="toggle-btn" data-group="team" data-val="si">Sí</div>
+            <div class="toggle-btn" data-group="team" data-val="no">No</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>¿Cuenta con ELD / cámaras?</label>
+          <div class="toggle-row">
+            <div class="toggle-btn" data-group="eld" data-val="">Indistinto</div>
+            <div class="toggle-btn" data-group="eld" data-val="si">Sí</div>
+            <div class="toggle-btn" data-group="eld" data-val="no">No</div>
+          </div>
+        </div>
+
+        <button class="search-btn" onclick="runSearch()">Buscar opciones</button>
+        <span class="reset-link" onclick="resetFilters()">Limpiar filtros</span>
+      </aside>
+
+      <section>
+        <div class="results-head">
+          <h2>Resultados</h2>
+          <span class="results-count" id="resultsCount"></span>
+        </div>
+        <div id="results">
+          <div class="empty-state">
+            <div class="icn">🔍</div>
+            Selecciona al menos el estado y presiona <b>Buscar opciones</b><br>para ver qué aseguradoras encajan con el riesgo.
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="legal">
+    Herramienta de consulta interna — refleja guidelines vigentes al momento de su publicación y no sustituye la confirmación con el área de suscripción.<br>
+    Los datos de esta herramienta son propiedad de InTrucks Corp y no deben compartirse fuera de la compañía.
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ===== dataset: se carga en vivo desde Supabase (tabla "programs") ===== */
+let PROGRAMS = [];
+async function loadPrograms(){
+  const { data, error } = await sb.from('programs').select('*');
+  if(error){
+    document.getElementById('results').innerHTML =
+      `<div class="empty-state"><div class="icn">⚠️</div>No se pudo cargar la información (${escapeHtml(error.message)}).<br>Avisa a tu líder comercial.</div>`;
+    PROGRAMS = [];
+    return;
+  }
+  PROGRAMS = (data||[]).map(row => ({
+    ...row,
+    estados: (row.estados||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean)
+  }));
+}
+
+/* ===== gate: correo + código OTP vía Supabase, restringido a un dominio ===== */
+const SUPABASE_URL = "REEMPLAZA_CON_TU_SUPABASE_URL";       // Settings > API > Project URL
+const SUPABASE_ANON_KEY = "REEMPLAZA_CON_TU_SUPABASE_ANON_KEY"; // Settings > API > anon public key
+const ALLOWED_DOMAIN = "intruckscorp.com";
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let pendingEmail = "";
+
+async function sendCode(isResend){
+  const errEl = document.getElementById('gateErr');
+  errEl.textContent = '';
+  const email = (isResend ? pendingEmail : document.getElementById('gateEmail').value).trim().toLowerCase();
+
+  if(!email.endsWith('@'+ALLOWED_DOMAIN)){
+    errEl.textContent = `Solo se permiten correos @${ALLOWED_DOMAIN}.`;
+    return;
+  }
+  pendingEmail = email;
+  errEl.textContent = 'Enviando código…';
+  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  if(error){
+    errEl.textContent = /rate limit/i.test(error.message)
+      ? 'Demasiados intentos. Espera un minuto e inténtalo de nuevo.'
+      : 'No se pudo enviar el código: ' + error.message;
+    return;
+  }
+  errEl.textContent = '';
+  document.getElementById('gateStepEmail').style.display='none';
+  document.getElementById('gateStepCode').style.display='block';
+  document.getElementById('gateStep1Text').textContent = `Enviamos un código a ${pendingEmail}. Revisa tu bandeja (y spam).`;
+}
+
+async function verifyCode(){
+  const errEl = document.getElementById('gateErr');
+  const code = document.getElementById('gateCode').value.trim();
+  errEl.textContent = 'Verificando…';
+  const { error } = await sb.auth.verifyOtp({ email: pendingEmail, token: code, type: 'email' });
+  if(error){
+    errEl.textContent = 'Código incorrecto o vencido. Inténtalo de nuevo.';
+    return;
+  }
+  unlockApp();
+}
+
+function backToEmail(){
+  document.getElementById('gateStepCode').style.display='none';
+  document.getElementById('gateStepEmail').style.display='block';
+  document.getElementById('gateErr').textContent='';
+  document.getElementById('gateStep1Text').textContent = 'Ingresa tu correo @'+ALLOWED_DOMAIN+' para recibir un código de acceso de un solo uso.';
+}
+
+async function unlockApp(){
+  document.getElementById('gate').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('results').innerHTML = `<div class="empty-state"><div class="icn">⏳</div>Cargando guidelines actualizados…</div>`;
+  await loadPrograms();
+  initApp();
+}
+
+function signOut(){
+  sb.auth.signOut().then(()=>location.reload());
+}
+
+(async function checkExistingSession(){
+  const { data } = await sb.auth.getSession();
+  if(data.session && data.session.user.email && data.session.user.email.toLowerCase().endsWith('@'+ALLOWED_DOMAIN)){
+    unlockApp();
+  }
+})();
+
+/* ===== helpers to parse guideline operators ===== */
+function parseOp(raw){
+  if(raw===null||raw===undefined) return {type:'any'};
+  const s = String(raw).trim();
+  if(/^all$/i.test(s) || s==='') return {type:'any'};
+  if(/^n\/a$/i.test(s)) return {type:'na'};
+  let m = s.match(/^>=\s*(\d+(\.\d+)?)$/); if(m) return {type:'gte', val:parseFloat(m[1])};
+  m = s.match(/^<=\s*(\d+(\.\d+)?)$/); if(m) return {type:'lte', val:parseFloat(m[1])};
+  m = s.match(/^>\s*(\d+(\.\d+)?)$/); if(m) return {type:'gt', val:parseFloat(m[1])};
+  m = s.match(/^<\s*(\d+(\.\d+)?)$/); if(m) return {type:'lt', val:parseFloat(m[1])};
+  m = s.match(/^(\d+(\.\d+)?)$/); if(m) return {type:'eq', val:parseFloat(m[1])};
+  return {type:'text', val:s};
+}
+function checkNumeric(raw, input){
+  if(input===''||input===null||input===undefined||isNaN(input)) return null; // no data entered -> not evaluated
+  const op = parseOp(raw);
+  if(op.type==='any') return true;
+  if(op.type==='na') return null;
+  const n = parseFloat(input);
+  switch(op.type){
+    case 'gte': return n >= op.val;
+    case 'lte': return n <= op.val;
+    case 'gt': return n > op.val;
+    case 'lt': return n < op.val;
+    case 'eq': return n === op.val;
+    default: return null;
+  }
+}
+function isYes(v){ return v && /^s[ií]$/i.test(String(v).trim()); }
+function isNo(v){ return v && /^no$/i.test(String(v).trim()); }
+
+/* Estados en los que InTrucks tiene licencia propia — edita esta lista
+   cuando cambie el estatus de licencias. Usa las siglas de 2 letras. */
+const PRIORITY_STATES = [
+  // "FL", "TX", "GA"   <- ejemplo: descomenta y reemplaza con tus estados reales
+];
+
+/* ===== populate selects ===== */
+function initApp(){
+  const stateSel = document.getElementById('fState');
+  const unitSelClear = document.getElementById('fUnit');
+  const cargoSelClear = document.getElementById('fCargo');
+  [stateSel, unitSelClear, cargoSelClear].forEach(sel=>{
+    while(sel.options.length>1) sel.remove(1);
+  });
+
+  const stateSet = new Set();
+  PROGRAMS.forEach(p => p.estados.forEach(s => { if(s && s!=='ALL') stateSet.add(s); }));
+
+  const allStates = [...stateSet].sort();
+  const priority = allStates.filter(s => PRIORITY_STATES.includes(s));
+  const rest = allStates.filter(s => !PRIORITY_STATES.includes(s));
+
+  if(priority.length){
+    const grp1 = document.createElement('optgroup');
+    grp1.label = '★ Estados con licencia InTrucks';
+    priority.forEach(s=>{
+      const o = document.createElement('option'); o.value=s; o.textContent = STATE_NAMES[s] || s;
+      grp1.appendChild(o);
+    });
+    stateSel.appendChild(grp1);
+  }
+  const grp2 = document.createElement('optgroup');
+  grp2.label = priority.length ? 'Otros estados' : 'Estados';
+  rest.forEach(s=>{
+    const o = document.createElement('option'); o.value=s; o.textContent = STATE_NAMES[s] || s;
+    grp2.appendChild(o);
+  });
+  stateSel.appendChild(grp2);
+
+  const unitSel = document.getElementById('fUnit');
+  const unitSet = new Set();
+  PROGRAMS.forEach(p=>{
+    if(p.unit_types) p.unit_types.split(',').forEach(u=>{
+      const t = u.trim(); if(t && !/^all$/i.test(t)) unitSet.add(titleCase(t));
+    });
+  });
+  [...unitSet].sort().forEach(u=>{
+    const o=document.createElement('option'); o.value=u.toUpperCase(); o.textContent=u; unitSel.appendChild(o);
+  });
+
+  const cargoSel = document.getElementById('fCargo');
+  const cargoSet = new Set();
+  PROGRAMS.forEach(p=>{
+    if(p.operacion) p.operacion.split(',').forEach(u=>{
+      const t=u.trim(); if(t && !/^all$/i.test(t)) cargoSet.add(titleCase(t));
+    });
+  });
+  [...cargoSet].sort().forEach(u=>{
+    const o=document.createElement('option'); o.value=u.toUpperCase(); o.textContent=u; cargoSel.appendChild(o);
+  });
+
+  document.querySelectorAll('.toggle-btn[data-val=""]').forEach(b=>b.classList.add('active'));
+}
+let _togglesBound = false;
+function bindToggles(){
+  if(_togglesBound) return;
+  _togglesBound = true;
+  document.querySelectorAll('.toggle-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const group = btn.dataset.group;
+      document.querySelectorAll(`.toggle-btn[data-group="${group}"]`).forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+}
+bindToggles();
+function titleCase(s){ return s.replace(/\w\S*/g, t=> t.charAt(0).toUpperCase()+t.substr(1).toLowerCase()); }
+
+const STATE_NAMES = {
+  AL:"Alabama",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",
+  DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawái",ID:"Idaho",IL:"Illinois",IN:"Indiana",
+  IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Luisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",
+  MI:"Michigan",MN:"Minnesota",MS:"Misisipi",MO:"Misuri",MT:"Montana",NE:"Nebraska",NV:"Nevada",
+  NH:"New Hampshire",NJ:"Nueva Jersey",NM:"Nuevo México",NY:"Nueva York",NC:"Carolina del Norte",
+  ND:"Dakota del Norte",OH:"Ohio",OK:"Oklahoma",OR:"Oregón",PA:"Pensilvania",RI:"Rhode Island",
+  SC:"Carolina del Sur",SD:"Dakota del Sur",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",
+  VA:"Virginia",WA:"Washington",WV:"Virginia Occidental",WI:"Wisconsin",WY:"Wyoming"
+};
+
+/* ===== search ===== */
+function getToggle(group){
+  const el = document.querySelector(`.toggle-btn[data-group="${group}"].active`);
+  return el ? el.dataset.val : '';
+}
+function resetFilters(){
+  document.getElementById('fState').value='';
+  document.getElementById('fUnit').value='';
+  document.getElementById('fCargo').value='';
+  document.getElementById('fYears').value='';
+  document.getElementById('fExp').value='';
+  document.getElementById('fAge').value='';
+  document.getElementById('fMvr').value='';
+  document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.toggle-btn[data-val=""]').forEach(b=>b.classList.add('active'));
+  document.getElementById('results').innerHTML = `<div class="empty-state"><div class="icn">🔍</div>Selecciona al menos el estado y presiona <b>Buscar opciones</b><br>para ver qué aseguradoras encajan con el riesgo.</div>`;
+  document.getElementById('resultsCount').textContent='';
+}
+
+function runSearch(){
+  const state = document.getElementById('fState').value;
+  const resultsDiv = document.getElementById('results');
+  const countSpan = document.getElementById('resultsCount');
+
+  if(!state){
+    resultsDiv.innerHTML = `<div class="empty-state"><div class="icn">📍</div>Selecciona un estado para comenzar la búsqueda.</div>`;
+    countSpan.textContent='';
+    return;
+  }
+
+  const unit = document.getElementById('fUnit').value;
+  const cargo = document.getElementById('fCargo').value;
+  const years = document.getElementById('fYears').value;
+  const exp = document.getElementById('fExp').value;
+  const age = document.getElementById('fAge').value;
+  const mvr = document.getElementById('fMvr').value;
+  const teamPref = getToggle('team');
+  const eldPref = getToggle('eld');
+
+  const candidates = PROGRAMS.filter(p => p.estados.includes(state) || p.estados.includes('ALL'));
+
+  const scored = candidates.map(p=>{
+    const checks = [];
+
+    if(unit){
+      const ok = /all/i.test(p.unit_types||'') || (p.unit_types||'').toUpperCase().includes(unit);
+      checks.push({label:'Tipo de unidad', ok, value:p.unit_types||'—'});
+    }
+    if(cargo){
+      const ok = /all/i.test(p.operacion||'') || (p.operacion||'').toUpperCase().includes(cargo);
+      checks.push({label:'Tipo de operación', ok, value:p.operacion||'—'});
+    }
+    const yearsOk = checkNumeric(p.years_biz, years);
+    if(yearsOk!==null) checks.push({label:'Años en el negocio', ok:yearsOk, value:String(p.years_biz)});
+
+    const expOk = checkNumeric(p.exp_driver, exp);
+    if(expOk!==null) checks.push({label:'Experiencia del conductor', ok:expOk, value:String(p.exp_driver)});
+
+    if(age!==''){
+      const minOk = checkNumeric('>='+p.edad_min, age);
+      const maxOk = checkNumeric('<='+p.edad_max, age);
+      let ok = true;
+      if(!/all/i.test(String(p.edad_min))) ok = ok && (parseFloat(age) >= parseFloat(p.edad_min));
+      if(!/all/i.test(String(p.edad_max))) ok = ok && (parseFloat(age) <= parseFloat(p.edad_max));
+      checks.push({label:'Edad del conductor', ok, value:`${p.edad_min}–${p.edad_max}`});
+    }
+
+    const mvrOk = checkNumeric(p.max_mvr, mvr);
+    if(mvrOk!==null) checks.push({label:'Máx. violaciones MVR', ok:mvrOk, value:String(p.max_mvr)});
+
+    if(teamPref){
+      const wants = teamPref==='si';
+      const has = isYes(p.team_driving);
+      const ok = /all/i.test(String(p.team_driving)) ? true : (wants === has);
+      checks.push({label:'Team driving', ok, value:p.team_driving||'—'});
+    }
+    if(eldPref){
+      const wants = eldPref==='si';
+      const has = isYes(p.eld_cam) || /case by case/i.test(String(p.eld_cam));
+      const ok = /all/i.test(String(p.eld_cam)) ? true : (wants ? has : !isYes(p.eld_cam));
+      checks.push({label:'ELD / Cámaras', ok, value:p.eld_cam||'—'});
+    }
+
+    const total = checks.length;
+    const matched = checks.filter(c=>c.ok).length;
+    const ratio = total===0 ? 1 : matched/total;
+
+    return {program:p, checks, ratio, matched, total};
+  });
+
+  scored.sort((a,b)=> b.ratio - a.ratio || (b.total-a.total));
+
+  countSpan.textContent = `${scored.length} programa(s) disponibles en ${STATE_NAMES[state]||state}`;
+
+  if(scored.length===0){
+    resultsDiv.innerHTML = `<div class="empty-state"><div class="icn">🚫</div>No encontramos programas activos para ese estado.<br>Confirma con tu líder comercial si hay una opción manual.</div>`;
+    return;
+  }
+
+  resultsDiv.innerHTML = scored.map((s,idx)=>{
+    const p = s.program;
+    let gClass='g-full', chipClass='chip-full', chipLabel='Cumple todo';
+    if(s.total>0){
+      if(s.ratio < 1 && s.ratio >= 0.6){ gClass='g-partial'; chipClass='chip-partial'; chipLabel='Revisar puntos'; }
+      else if(s.ratio < 0.6){ gClass='g-low'; chipClass='chip-low'; chipLabel='Poco viable'; }
+    } else {
+      chipLabel='Disponible';
+    }
+    const pct = s.total>0 ? Math.round(s.ratio*100) : 100;
+
+    const critHtml = s.checks.map(c=>`
+      <div class="crit ${c.ok?'match':'mismatch'}">
+        <span class="k">${c.label}</span>
+        <span class="v">${c.ok?'✓':'✕'} ${escapeHtml(String(c.value))}</span>
+      </div>
+    `).join('') + baseCriteria(p);
+
+    const noteHtml = p.comentario ? `<div class="note"><b>Nota del suscriptor:</b> ${escapeHtml(p.comentario)}</div>` : '';
+
+    return `
+    <div class="card" id="card-${idx}">
+      <div class="card-head" onclick="toggleCard(${idx})">
+        <div class="card-head-left">
+          <div class="gauge ${gClass}">${pct}%</div>
+          <div>
+            <div class="card-title">${escapeHtml(p.programa)}</div>
+            <div class="card-sub">DOT: ${escapeHtml(p.dot_safety||'—')} · Respuesta: ${escapeHtml(String(p.tiempo_resp||'—'))}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="card-chip ${chipClass}">${chipLabel}</span>
+          <span class="chevron">▾</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="grid-crit">${critHtml}</div>
+        ${noteHtml}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function baseCriteria(p){
+  return `
+    <div class="crit"><span class="k">Radio de operación</span><span class="v">${escapeHtml(String(p.radio_op||'—'))}</span></div>
+    <div class="crit"><span class="k">Licencia federal</span><span class="v">${escapeHtml(String(p.lic_federal||'—'))}</span></div>
+    <div class="crit"><span class="k">Máx. antigüedad unidad</span><span class="v">${escapeHtml(String(p.max_unit_age||'—'))}</span></div>
+    <div class="crit"><span class="k">Máx. loss ratio</span><span class="v">${escapeHtml(String(p.max_lr||'—'))}</span></div>
+    <div class="crit"><span class="k">Máx. alertas</span><span class="v">${escapeHtml(String(p.max_alertas||'—'))}</span></div>
+    <div class="crit"><span class="k">Retención</span><span class="v">${escapeHtml(String(p.retention||'—'))}</span></div>
+    <div class="crit"><span class="k">Tipos de unidad</span><span class="v">${escapeHtml(String(p.unit_types||'—'))}</span></div>
+    <div class="crit"><span class="k">Operación / carga</span><span class="v">${escapeHtml(String(p.operacion||'—'))}</span></div>
+  `;
+}
+
+function toggleCard(idx){
+  document.getElementById('card-'+idx).classList.toggle('open');
+}
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+</script>
+</body>
+</html>
