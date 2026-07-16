@@ -131,6 +131,18 @@
   .results-head h2{font-size:16px;margin:0;color:var(--navy);}
   .results-count{font-size:12.5px;color:var(--muted);}
 
+  .mode-tabs{display:flex;gap:8px;margin-bottom:18px;}
+  .mode-tab{
+    padding:10px 18px;border-radius:9px;border:1.5px solid var(--line);background:#fff;
+    font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;
+  }
+  .mode-tab.active{border-color:var(--teal);background:var(--teal-soft);color:var(--teal);}
+  .mga-carrier-card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    margin-bottom:14px;padding:16px 18px;
+  }
+  .mga-carrier-card h3{font-size:14.5px;margin:0 0 2px;color:var(--ink);}
+  .mga-carrier-card .sub{font-size:11.5px;color:var(--muted);margin-bottom:10px;}
   .disclaimer-banner{
     background:var(--warn-bg);border:1px solid #f0dca3;color:#7a5b06;
     border-radius:10px;padding:12px 16px;font-size:12.5px;line-height:1.55;margin-bottom:16px;
@@ -238,7 +250,12 @@
   </header>
 
   <main>
-    <div class="layout">
+    <div class="mode-tabs">
+      <div class="mode-tab active" id="tabEstado" onclick="switchMode('estado')">Buscar por Estado</div>
+      <div class="mode-tab" id="tabMga" onclick="switchMode('mga')">Buscar por MGA</div>
+    </div>
+
+    <div class="layout" id="layoutEstado">
       <aside class="panel">
         <h2>Cuéntanos del riesgo</h2>
         <p class="hint">Completa lo que sepas del cliente. Entre más datos ingreses, más preciso será el resultado.</p>
@@ -316,6 +333,41 @@
         </div>
       </section>
     </div>
+
+    <div class="layout" id="layoutMga" style="display:none;">
+      <aside class="panel">
+        <h2>Buscar por MGA</h2>
+        <p class="hint">Selecciona una MGA para ver todos los Carriers disponibles y estudiar sus términos.</p>
+
+        <div class="field">
+          <label>MGA <span class="opt">requerido</span></label>
+          <select id="mgaSelect"><option value="">Selecciona una MGA…</option></select>
+        </div>
+
+        <div class="field">
+          <label>Filtrar por estado <span class="opt">opcional</span></label>
+          <select id="mgaStateFilter"><option value="">Cualquiera</option></select>
+        </div>
+
+        <button class="search-btn" onclick="runMgaSearch()">Ver Carriers</button>
+      </aside>
+
+      <section>
+        <div class="results-head">
+          <h2>Carriers de la MGA</h2>
+          <span class="results-count" id="mgaResultsCount"></span>
+        </div>
+        <div class="disclaimer-banner">
+          ⚠️ <b>Importante:</b> Este buscador no evalúa loss runs, violaciones de conductores en MVR detallado, IFTAs, scores de riesgo, ni documentación soporte adicional. Estos factores pueden ser motivo de declinación en algunos mercados. Confirma siempre con el área de suscripción.
+        </div>
+        <div id="mgaResults">
+          <div class="empty-state">
+            <div class="icn">🏢</div>
+            Selecciona una MGA y presiona <b>Ver Carriers</b><br>para estudiar sus opciones y términos.
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
 
   <footer class="legal">
@@ -328,6 +380,92 @@
 <script>
 /* ===== dataset: se carga en vivo desde Supabase (tabla "programs") ===== */
 let PROGRAMS = [];
+let MGA_CARRIERS = [];
+async function loadMgaCarriers(){
+  const { data, error } = await sb.from('mga_carriers').select('*');
+  if(error){ MGA_CARRIERS = []; return; }
+  MGA_CARRIERS = (data||[]).map(row => ({
+    ...row,
+    estados: (row.estados||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean)
+  }));
+}
+function initMgaSelects(){
+  const mgaSel = document.getElementById('mgaSelect');
+  const stateSel = document.getElementById('mgaStateFilter');
+  [mgaSel, stateSel].forEach(sel=>{ while(sel.options.length>1) sel.remove(1); });
+
+  const mgaSet = new Set();
+  const stateSet = new Set();
+  MGA_CARRIERS.forEach(r=>{
+    if(r.mga) mgaSet.add(String(r.mga).trim());
+    r.estados.forEach(s=>{ if(s) stateSet.add(s); });
+  });
+  [...mgaSet].sort().forEach(m=>{
+    const o=document.createElement('option'); o.value=m; o.textContent=m; mgaSel.appendChild(o);
+  });
+  [...stateSet].sort().forEach(s=>{
+    const o=document.createElement('option'); o.value=s; o.textContent=STATE_NAMES[s]||s; stateSel.appendChild(o);
+  });
+}
+function switchMode(mode){
+  document.getElementById('layoutEstado').style.display = mode==='estado' ? 'grid' : 'none';
+  document.getElementById('layoutMga').style.display = mode==='mga' ? 'grid' : 'none';
+  document.getElementById('tabEstado').classList.toggle('active', mode==='estado');
+  document.getElementById('tabMga').classList.toggle('active', mode==='mga');
+}
+function runMgaSearch(){
+  const mga = document.getElementById('mgaSelect').value;
+  const state = document.getElementById('mgaStateFilter').value;
+  const resultsDiv = document.getElementById('mgaResults');
+  const countSpan = document.getElementById('mgaResultsCount');
+
+  if(!mga){
+    resultsDiv.innerHTML = `<div class="empty-state"><div class="icn">🏢</div>Selecciona una MGA para comenzar.</div>`;
+    countSpan.textContent='';
+    return;
+  }
+
+  let rows = MGA_CARRIERS.filter(r => String(r.mga).trim() === mga);
+  if(state) rows = rows.filter(r => r.estados.includes(state));
+
+  countSpan.textContent = `${rows.length} carrier(s) bajo ${mga}`;
+
+  if(rows.length===0){
+    resultsDiv.innerHTML = `<div class="empty-state"><div class="icn">🚫</div>No hay carriers de esta MGA${state? ' en ese estado':''}.</div>`;
+    return;
+  }
+
+  resultsDiv.innerHTML = rows.map(r=>`
+    <div class="mga-carrier-card">
+      <h3>${escapeHtml(r.carrier||'—')}</h3>
+      <div class="sub">${escapeHtml(r.programa||'—')} · Estados: ${escapeHtml((r.estados||[]).join(', ')||'—')}</div>
+      <div class="grid-crit">
+        <div class="crit"><span class="k">BOR</span><span class="v">${escapeHtml(String(r.bor||'—'))}</span></div>
+        <div class="crit"><span class="k">Periodo BOR</span><span class="v">${escapeHtml(String(r.bor_periodo||'—'))}</span></div>
+        <div class="crit"><span class="k">BOR Renewal</span><span class="v">${escapeHtml(String(r.bor_renewal||'—'))}</span></div>
+        <div class="crit"><span class="k">Años en el negocio</span><span class="v">${escapeHtml(String(r.years_biz||'—'))}</span></div>
+        <div class="crit"><span class="k">Radio de operación</span><span class="v">${escapeHtml(String(r.radio_op||'—'))}</span></div>
+        <div class="crit"><span class="k">Experiencia conductor</span><span class="v">${escapeHtml(String(r.exp_driver||'—'))}</span></div>
+        <div class="crit"><span class="k">Licencia federal</span><span class="v">${escapeHtml(String(r.lic_federal||'—'))}</span></div>
+        <div class="crit"><span class="k">Edad conductor</span><span class="v">${escapeHtml(String(r.edad_min||'—'))}–${escapeHtml(String(r.edad_max||'—'))}</span></div>
+        <div class="crit"><span class="k">Máx. MVR</span><span class="v">${escapeHtml(String(r.max_mvr||'—'))}</span></div>
+        <div class="crit"><span class="k">Team driving</span><span class="v">${escapeHtml(String(r.team_driving||'—'))}</span></div>
+        <div class="crit"><span class="k">Máx. loss ratio</span><span class="v">${escapeHtml(String(r.max_lr||'—'))}</span></div>
+        <div class="crit"><span class="k">Máx. alertas</span><span class="v">${escapeHtml(String(r.max_alertas||'—'))}</span></div>
+        <div class="crit"><span class="k">Máx. antigüedad unidad</span><span class="v">${escapeHtml(String(r.max_unit_age||'—'))}</span></div>
+        <div class="crit"><span class="k">Tipos de unidad</span><span class="v">${escapeHtml(String(r.unit_types||'—'))}</span></div>
+        <div class="crit"><span class="k">Operación/carga</span><span class="v">${escapeHtml(String(r.operacion||'—'))}</span></div>
+        <div class="crit"><span class="k">Retención</span><span class="v">${escapeHtml(String(r.retention||'—'))}</span></div>
+        <div class="crit"><span class="k">ELD/Cámaras</span><span class="v">${escapeHtml(String(r.eld_cam||'—'))}</span></div>
+        <div class="crit"><span class="k">DOT Safety</span><span class="v">${escapeHtml(String(r.dot_safety||'—'))}</span></div>
+        <div class="crit"><span class="k">Tiempo respuesta</span><span class="v">${escapeHtml(String(r.tiempo_resp||'—'))}</span></div>
+      </div>
+      ${r.comentario ? `<div class="note"><b>Nota:</b> ${escapeHtml(r.comentario)}</div>` : ''}
+      ${r.camaras_nota ? `<div class="note"><b>Cámaras:</b> ${escapeHtml(r.camaras_nota)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
 async function loadPrograms(){
   const { data, error } = await sb.from('programs').select('*');
   if(error){
@@ -398,7 +536,9 @@ async function unlockApp(){
   document.getElementById('app').style.display='block';
   document.getElementById('results').innerHTML = `<div class="empty-state"><div class="icn">⏳</div>Cargando guidelines actualizados…</div>`;
   await loadPrograms();
+  await loadMgaCarriers();
   initApp();
+  initMgaSelects();
 }
 
 function signOut(){
