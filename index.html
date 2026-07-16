@@ -383,7 +383,14 @@ let PROGRAMS = [];
 let MGA_CARRIERS = [];
 async function loadMgaCarriers(){
   const { data, error } = await sb.from('mga_carriers').select('*');
-  if(error){ MGA_CARRIERS = []; return; }
+  if(error){
+    console.error('Error cargando mga_carriers:', error);
+    document.getElementById('mgaResults').innerHTML =
+      `<div class="empty-state"><div class="icn">⚠️</div>Error: ${escapeHtml(error.message)}</div>`;
+    MGA_CARRIERS = [];
+    return;
+  }
+  console.log('mga_carriers filas cargadas:', data ? data.length : 0);
   MGA_CARRIERS = (data||[]).map(row => ({
     ...row,
     estados: (row.estados||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean)
@@ -403,9 +410,27 @@ function initMgaSelects(){
   [...mgaSet].sort().forEach(m=>{
     const o=document.createElement('option'); o.value=m; o.textContent=m; mgaSel.appendChild(o);
   });
-  [...stateSet].sort().forEach(s=>{
-    const o=document.createElement('option'); o.value=s; o.textContent=STATE_NAMES[s]||s; stateSel.appendChild(o);
+
+  const allMgaStates = [...stateSet].sort();
+  const mgaPriority = allMgaStates.filter(s => PRIORITY_STATES.includes(s));
+  const mgaRest = allMgaStates.filter(s => !PRIORITY_STATES.includes(s));
+
+  if(mgaPriority.length){
+    const grp1 = document.createElement('optgroup');
+    grp1.label = '★ Estados con licencia InTrucks';
+    mgaPriority.forEach(s=>{
+      const o=document.createElement('option'); o.value=s; o.textContent=STATE_NAMES[s]||s;
+      grp1.appendChild(o);
+    });
+    stateSel.appendChild(grp1);
+  }
+  const grp2 = document.createElement('optgroup');
+  grp2.label = mgaPriority.length ? 'Otros estados' : 'Estados';
+  mgaRest.forEach(s=>{
+    const o=document.createElement('option'); o.value=s; o.textContent=STATE_NAMES[s]||s;
+    grp2.appendChild(o);
   });
+  stateSel.appendChild(grp2);
 }
 function switchMode(mode){
   document.getElementById('layoutEstado').style.display = mode==='estado' ? 'grid' : 'none';
