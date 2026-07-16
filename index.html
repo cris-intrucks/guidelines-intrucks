@@ -131,6 +131,12 @@
   .results-head h2{font-size:16px;margin:0;color:var(--navy);}
   .results-count{font-size:12.5px;color:var(--muted);}
 
+  .disclaimer-banner{
+    background:var(--warn-bg);border:1px solid #f0dca3;color:#7a5b06;
+    border-radius:10px;padding:12px 16px;font-size:12.5px;line-height:1.55;margin-bottom:16px;
+  }
+  .disclaimer-banner b{font-family:'Montserrat Alternates',sans-serif;}
+
   .empty-state{
     background:var(--card);border:1px dashed var(--line);border-radius:var(--radius);
     padding:60px 30px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.6;
@@ -299,6 +305,9 @@
           <h2>Resultados</h2>
           <span class="results-count" id="resultsCount"></span>
         </div>
+        <div class="disclaimer-banner">
+          ⚠️ <b>Importante:</b> Este buscador no evalúa loss runs, violaciones de conductores en MVR detallado, IFTAs, scores de riesgo, ni documentación soporte adicional. Estos factores sí son revisados por el suscriptor y pueden ser motivo de declinación en algunos de estos mercados, incluso si el resultado aquí se muestra como elegible. Algunas condiciones específicas de cada programa podrían no aplicar. Confirma siempre con el área de suscripción antes de cotizar o comprometerte con el cliente.
+        </div>
         <div id="results">
           <div class="empty-state">
             <div class="icn">🔍</div>
@@ -436,9 +445,7 @@ function isNo(v){ return v && /^no$/i.test(String(v).trim()); }
 
 /* Estados en los que InTrucks tiene licencia propia — edita esta lista
    cuando cambie el estatus de licencias. Usa las siglas de 2 letras. */
-const PRIORITY_STATES = [
-  // "FL", "TX", "GA"   <- ejemplo: descomenta y reemplaza con tus estados reales
-];
+const PRIORITY_STATES = ["FL", "TX", "CA", "PA", "IL", "GA", "NC"];
 
 /* ===== populate selects ===== */
 function initApp(){
@@ -613,16 +620,28 @@ function runSearch(){
     return {program:p, checks, ratio, matched, total};
   });
 
-  scored.sort((a,b)=> b.ratio - a.ratio || (b.total-a.total));
+  // Evita mostrar el mismo programa/aseguradora repetido cuando hay varias filas
+  // en la tabla con el mismo nombre (p.ej. una fila por sub-criterio). Se queda
+  // con la fila que mejor coincide con lo que el usuario buscó.
+  const dedupMap = new Map();
+  scored.forEach(s=>{
+    const key = (s.program.programa||'').trim().toLowerCase();
+    const existing = dedupMap.get(key);
+    if(!existing || s.ratio > existing.ratio || (s.ratio === existing.ratio && s.total > existing.total)){
+      dedupMap.set(key, s);
+    }
+  });
+  const deduped = [...dedupMap.values()];
+  deduped.sort((a,b)=> b.ratio - a.ratio || (b.total-a.total));
 
-  countSpan.textContent = `${scored.length} programa(s) disponibles en ${STATE_NAMES[state]||state}`;
+  countSpan.textContent = `${deduped.length} programa(s) disponibles en ${STATE_NAMES[state]||state}`;
 
-  if(scored.length===0){
+  if(deduped.length===0){
     resultsDiv.innerHTML = `<div class="empty-state"><div class="icn">🚫</div>No encontramos programas activos para ese estado.<br>Confirma con tu líder comercial si hay una opción manual.</div>`;
     return;
   }
 
-  resultsDiv.innerHTML = scored.map((s,idx)=>{
+  resultsDiv.innerHTML = deduped.map((s,idx)=>{
     const p = s.program;
     let gClass='g-full', chipClass='chip-full', chipLabel='Cumple todo';
     if(s.total>0){
