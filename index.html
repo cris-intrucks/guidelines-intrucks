@@ -25,6 +25,8 @@
     --bad-bg:#fbe9e9;
     --grad: linear-gradient(120deg, var(--teal) 0%, var(--navy) 100%);
     --radius: 14px;
+    --ease-out: cubic-bezier(.22,1,.36,1);
+    --ease-spring: cubic-bezier(.34,1.56,.64,1);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
@@ -32,39 +34,106 @@
   ::selection{background:var(--teal-soft);}
   body{user-select:text;}
 
+  /* ---------- shared keyframes ---------- */
+  @keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.985);}to{opacity:1;transform:none;}}
+  @keyframes viewIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  @keyframes pop{0%{transform:scale(1);}50%{transform:scale(1.08);}100%{transform:scale(1);}}
+  @keyframes shake{10%,90%{transform:translateX(-1px);}20%,80%{transform:translateX(2px);}30%,50%,70%{transform:translateX(-4px);}40%,60%{transform:translateX(4px);}}
+  @keyframes draw{to{stroke-dashoffset:0;}}
+  @keyframes float{50%{transform:translateY(-4px);}}
+  @keyframes shimmer{to{background-position:-200% 0;}}
+  @keyframes ripple{to{transform:scale(1);opacity:0;}}
+  @keyframes chipPulse{0%{transform:scale(1);}50%{transform:scale(1.12);}100%{transform:scale(1);}}
+  @keyframes dotPulse{0%{box-shadow:0 0 0 0 rgba(255,209,102,.55);}70%{box-shadow:0 0 0 6px rgba(255,209,102,0);}100%{box-shadow:0 0 0 0 rgba(255,209,102,0);}}
+  @keyframes wheelSpin{to{transform:rotate(360deg);}}
+  @keyframes roadMove{to{stroke-dashoffset:-22;}}
+  @keyframes truckBob{to{transform:translateY(-1.5px);}}
+  @keyframes blobDrift{0%{transform:translate(0,0) scale(1);}50%{transform:translate(60px,-40px) scale(1.15);}100%{transform:translate(-40px,30px) scale(.95);}}
+  @keyframes gateCardIn{from{opacity:0;transform:translateY(22px) scale(.94);}to{opacity:1;transform:none;}}
+  @keyframes stepIn{from{opacity:0;transform:translateX(14px);}to{opacity:1;transform:none;}}
+  @keyframes gateLeave{to{opacity:0;transform:scale(1.02);}}
+
   /* ---------- Gate ---------- */
   #gate{
     position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-    background:var(--grad);z-index:100;padding:24px;
+    background:var(--grad);z-index:100;padding:24px;overflow:hidden;
+  }
+  #gate.leaving{animation:gateLeave .35s ease forwards;pointer-events:none;}
+  .gate-blob{
+    position:absolute;border-radius:50%;filter:blur(70px);pointer-events:none;
+  }
+  .gate-blob.b1{
+    width:420px;height:420px;top:-120px;left:-100px;background:rgba(255,255,255,.16);
+    animation:blobDrift 16s ease-in-out infinite alternate;
+  }
+  .gate-blob.b2{
+    width:520px;height:520px;bottom:-180px;right:-140px;background:rgba(57,155,128,.35);
+    animation:blobDrift 20s ease-in-out infinite alternate-reverse;
   }
   .gate-card{
     background:var(--card);border-radius:20px;padding:40px 36px;max-width:400px;width:100%;
-    box-shadow:0 30px 60px rgba(0,20,50,.35);text-align:center;
+    box-shadow:0 30px 60px rgba(0,20,50,.35);text-align:center;position:relative;
+    animation:gateCardIn .55s var(--ease-spring) both;
   }
   .gate-card .mark{
     width:56px;height:56px;border-radius:14px;background:var(--grad);margin:0 auto 18px;
-    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px;
-    font-family:'Montserrat Alternates',sans-serif;
+    display:flex;align-items:center;justify-content:center;
   }
+  .gate-card .mark svg{width:34px;height:34px;}
+  .gate-card .mark path{
+    fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round;
+    stroke-dasharray:30;stroke-dashoffset:30;
+  }
+  .gate-card .mark path:nth-child(1){animation:draw .4s var(--ease-out) .25s forwards;}
+  .gate-card .mark path:nth-child(2){animation:draw .35s var(--ease-out) .5s forwards;}
+  .gate-card .mark path:nth-child(3){animation:draw .4s var(--ease-out) .65s forwards;}
   .gate-card h1{font-size:20px;margin:0 0 6px;color:var(--navy);}
   .gate-card p{font-size:13.5px;color:var(--muted);margin:0 0 22px;line-height:1.5;}
   .gate-card input{
     width:100%;padding:13px 14px;border-radius:10px;border:1.5px solid var(--line);
     font-size:15px;text-align:center;letter-spacing:2px;font-family:'Inter',sans-serif;
-    outline:none;transition:border-color .15s;
+    outline:none;transition:border-color .15s, box-shadow .15s;
   }
-  .gate-card input:focus{border-color:var(--teal);}
+  .gate-card input:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft);}
   .gate-card button{
     margin-top:14px;width:100%;padding:13px;border:none;border-radius:10px;background:var(--grad);
-    color:#fff;font-weight:600;font-size:14.5px;cursor:pointer;transition:opacity .15s;
-    font-family:'Inter',sans-serif;
+    color:#fff;font-weight:600;font-size:14.5px;cursor:pointer;
+    font-family:'Inter',sans-serif;position:relative;overflow:hidden;
+    transition:transform .18s var(--ease-out), box-shadow .18s, opacity .15s;
   }
-  .gate-card button:hover{opacity:.92;}
+  .gate-card button:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,52,124,.28);}
+  .gate-card button:active{transform:translateY(0) scale(.98);box-shadow:none;}
+  .gate-step.step-in{animation:stepIn .3s var(--ease-out) both;}
+  .otp-row{display:flex;gap:8px;justify-content:center;}
+  .gate-card .otp-row .otp-box{
+    width:44px;height:52px;padding:0;text-align:center;font-size:20px;font-weight:600;
+    letter-spacing:0;border:1.5px solid var(--line);border-radius:10px;
+  }
+  .gate-card .otp-row .otp-box.filled{
+    border-color:var(--teal);background:var(--teal-soft);animation:pop .2s ease;
+  }
   .gate-err{color:var(--bad);font-size:12.5px;margin-top:10px;min-height:16px;}
+  .gate-err.shake{animation:shake .45s ease;}
   .gate-note{font-size:11px;color:#9aa6bd;margin-top:18px;line-height:1.5;}
+  .gate-success{
+    position:absolute;inset:0;border-radius:20px;background:var(--card);z-index:2;
+    display:none;align-items:center;justify-content:center;
+  }
+  .gate-success.show{display:flex;}
+  .gate-success svg{width:72px;height:72px;}
+  .gate-success circle,.gate-success path{
+    fill:none;stroke:var(--good);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;
+  }
+  .gate-success circle{stroke-dasharray:151;stroke-dashoffset:151;animation:draw .5s var(--ease-out) forwards;}
+  .gate-success path{stroke-dasharray:34;stroke-dashoffset:34;animation:draw .35s var(--ease-out) .4s forwards;}
+  .ripple{
+    position:absolute;border-radius:50%;background:rgba(255,255,255,.35);
+    transform:scale(0);animation:ripple .6s ease-out forwards;pointer-events:none;
+  }
 
   /* ---------- App ---------- */
   #app{display:none;min-height:100vh;}
+  #app.app-enter{animation:viewIn .4s var(--ease-out) both;}
   header.top{
     background:var(--grad);color:#fff;padding:22px 28px;display:flex;align-items:center;
     justify-content:space-between;flex-wrap:wrap;gap:10px;
@@ -78,13 +147,15 @@
   header.top .sub{font-size:12px;opacity:.85;margin-top:2px;font-family:'Inter',sans-serif;}
   .confidential{
     font-size:11px;background:rgba(255,255,255,.16);padding:6px 12px;border-radius:20px;
-    display:flex;align-items:center;gap:6px;
+    display:flex;align-items:center;gap:6px;transition:background .2s;
   }
-  .confidential .dot{width:6px;height:6px;border-radius:50%;background:#ffd166;}
+  .confidential[onclick]:hover{background:rgba(255,255,255,.28);}
+  .confidential .dot{width:6px;height:6px;border-radius:50%;background:#ffd166;animation:dotPulse 2.4s ease-out infinite;}
 
   main{max-width:1180px;margin:0 auto;padding:26px 20px 70px;}
 
   .layout{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start;}
+  .layout.view-in{animation:viewIn .28s var(--ease-out) both;}
   @media (max-width:900px){.layout{grid-template-columns:1fr;}}
 
   .panel{
@@ -103,44 +174,60 @@
   select,input[type=number]{
     width:100%;padding:10px 12px;border-radius:9px;border:1.5px solid var(--line);
     font-size:13.5px;font-family:'Inter',sans-serif;outline:none;background:#fff;color:var(--ink);
-    transition:border-color .15s;
+    transition:border-color .15s, box-shadow .15s;
   }
-  select:focus,input[type=number]:focus{border-color:var(--teal);}
+  select:focus,input[type=number]:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft);}
   .toggle-row{display:flex;gap:8px;}
   .toggle-btn{
     flex:1;padding:9px 6px;border-radius:9px;border:1.5px solid var(--line);background:#fff;
     font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;
     transition:all .15s;
   }
-  .toggle-btn.active{border-color:var(--teal);background:var(--teal-soft);color:var(--teal);}
+  .toggle-btn.active{border-color:var(--teal);background:var(--teal-soft);color:var(--teal);animation:pop .25s ease;}
   .toggle-btn:hover{border-color:var(--teal);}
+  .toggle-btn:active{transform:scale(.96);}
 
   .search-btn{
     width:100%;padding:13px;border:none;border-radius:10px;background:var(--grad);
     color:#fff;font-weight:700;font-size:14px;cursor:pointer;margin-top:6px;
-    font-family:'Inter',sans-serif;letter-spacing:.2px;
+    font-family:'Inter',sans-serif;letter-spacing:.2px;position:relative;overflow:hidden;
+    transition:transform .18s var(--ease-out), box-shadow .18s;
   }
-  .search-btn:hover{opacity:.93;}
+  .search-btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,52,124,.28);}
+  .search-btn:active{transform:translateY(0) scale(.98);box-shadow:none;}
+  .search-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none;}
   .reset-link{
     display:block;text-align:center;margin-top:10px;font-size:12px;color:var(--muted);
-    cursor:pointer;text-decoration:underline;
+    cursor:pointer;text-decoration:underline;transition:color .15s;
   }
+  .reset-link:hover{color:var(--teal);}
 
   /* results */
   .results-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
   .results-head h2{font-size:16px;margin:0;color:var(--navy);}
   .results-count{font-size:12.5px;color:var(--muted);}
 
-  .mode-tabs{display:flex;gap:8px;margin-bottom:18px;}
-  .mode-tab{
-    padding:10px 18px;border-radius:9px;border:1.5px solid var(--line);background:#fff;
-    font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;
+  .mode-tabs{display:flex;gap:8px;margin-bottom:18px;position:relative;}
+  .tab-ind{
+    position:absolute;top:0;left:0;height:100%;width:0;border-radius:9px;
+    background:var(--teal-soft);border:1.5px solid var(--teal);
+    transition:transform .3s var(--ease-out), width .3s var(--ease-out);
+    pointer-events:none;
   }
-  .mode-tab.active{border-color:var(--teal);background:var(--teal-soft);color:var(--teal);}
+  .mode-tab{
+    padding:10px 18px;border-radius:9px;border:1.5px solid var(--line);background:transparent;
+    font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;
+    position:relative;z-index:1;transition:color .2s, border-color .2s;
+  }
+  .mode-tab:hover{color:var(--teal);}
+  .mode-tab.active{border-color:transparent;color:var(--teal);}
+
   .mga-carrier-card{
     background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-    margin-bottom:14px;padding:16px 18px;
+    margin-bottom:14px;padding:16px 18px;position:relative;overflow:hidden;
+    transition:transform .25s var(--ease-out), box-shadow .25s, border-color .25s;
   }
+  .mga-carrier-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(18,32,58,.08);border-color:#cfd8e8;}
   .mga-carrier-card h3{font-size:14.5px;margin:0 0 2px;color:var(--ink);}
   .mga-carrier-card .sub{font-size:11.5px;color:var(--muted);margin-bottom:10px;}
   .disclaimer-banner{
@@ -152,38 +239,94 @@
   .empty-state{
     background:var(--card);border:1px dashed var(--line);border-radius:var(--radius);
     padding:60px 30px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.6;
+    animation:viewIn .3s var(--ease-out) both;
   }
-  .empty-state .icn{font-size:34px;margin-bottom:10px;}
+  .empty-state .icn{margin-bottom:12px;}
+  .empty-state .icn svg{
+    width:44px;height:44px;fill:none;stroke:var(--teal);stroke-width:1.8;
+    stroke-linecap:round;stroke-linejoin:round;animation:float 3.2s ease-in-out infinite;
+  }
+
+  /* truck loader */
+  .truck-loader{width:130px;height:70px;margin:0 auto 14px;display:block;overflow:visible;}
+  .truck-loader .truck-body rect,.truck-loader .truck-body path{fill:#fff;stroke:var(--navy);stroke-width:2.5;stroke-linejoin:round;}
+  .truck-loader .truck-body .win{fill:var(--teal-soft);stroke:var(--teal);stroke-width:2;}
+  .truck-loader .truck-body{animation:truckBob .55s ease-in-out infinite alternate;}
+  .truck-loader .wheel{transform-box:fill-box;transform-origin:center;animation:wheelSpin .8s linear infinite;}
+  .truck-loader .wheel circle{fill:#fff;stroke:var(--navy);stroke-width:2.5;}
+  .truck-loader .wheel line{stroke:var(--navy);stroke-width:1.5;}
+  .truck-loader .road{stroke:var(--line);stroke-width:3;stroke-linecap:round;stroke-dasharray:12 10;animation:roadMove .5s linear infinite;}
+
+  /* skeleton */
+  .sk-card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;display:flex;gap:12px;align-items:center;margin-bottom:14px;
+    animation:cardIn .3s var(--ease-out) backwards;animation-delay:calc(var(--i)*60ms);
+  }
+  .sk-circle{width:44px;height:44px;border-radius:50%;flex:none;}
+  .sk-lines{flex:1;}
+  .sk-bar{height:12px;border-radius:6px;margin:5px 0;}
+  .sk-bar.w60{width:60%;}
+  .sk-bar.w40{width:38%;}
+  .sk-circle,.sk-bar{
+    background:linear-gradient(90deg,#eef1f7 25%,#e2e8f2 45%,#eef1f7 65%);
+    background-size:200% 100%;animation:shimmer 1.2s linear infinite;
+  }
 
   .card{
     background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-    margin-bottom:14px;overflow:hidden;
+    margin-bottom:14px;overflow:hidden;position:relative;
+    transition:transform .25s var(--ease-out), box-shadow .25s, border-color .25s;
   }
+  .card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(18,32,58,.08);border-color:#cfd8e8;}
+  .card-anim{animation:cardIn .45s var(--ease-out) backwards;animation-delay:calc(var(--i)*45ms);}
+  .card::after,.mga-carrier-card::after{
+    content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;
+    transition:opacity .25s;
+    background:radial-gradient(220px circle at var(--mx,50%) var(--my,50%),rgba(57,155,128,.09),transparent 65%);
+  }
+  .card:hover::after,.mga-carrier-card:hover::after{opacity:1;}
   .card-head{
     padding:16px 18px;display:flex;align-items:center;justify-content:space-between;
     cursor:pointer;gap:12px;
   }
   .card-head-left{display:flex;align-items:center;gap:12px;min-width:0;}
   .gauge{
-    width:44px;height:44px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
-    font-weight:800;font-size:12px;font-family:'Montserrat Alternates',sans-serif;color:#fff;
+    width:46px;height:46px;border-radius:50%;flex:none;position:relative;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:11px;font-family:'Montserrat Alternates',sans-serif;
   }
-  .gauge.g-full{background:var(--good);}
-  .gauge.g-partial{background:var(--warn);}
-  .gauge.g-low{background:var(--bad);}
+  .gauge svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
+  .gauge circle{fill:none;stroke-width:4;}
+  .gauge .track{stroke:var(--line);opacity:.55;}
+  .gauge .ring{stroke-linecap:round;stroke-dasharray:119.4;stroke-dashoffset:119.4;}
+  .gauge.g-full{background:var(--good-bg);color:var(--good);}
+  .gauge.g-full .ring{stroke:var(--good);}
+  .gauge.g-partial{background:var(--warn-bg);color:var(--warn);}
+  .gauge.g-partial .ring{stroke:var(--warn);}
+  .gauge.g-low{background:var(--bad-bg);color:var(--bad);}
+  .gauge.g-low .ring{stroke:var(--bad);}
   .card-title{font-size:14.5px;font-weight:700;color:var(--ink);}
   .card-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
   .card-chip{
     font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;white-space:nowrap;
   }
-  .chip-full{background:var(--good-bg);color:var(--good);}
+  .chip-full{background:var(--good-bg);color:var(--good);animation:chipPulse .5s ease .6s backwards;}
   .chip-partial{background:var(--warn-bg);color:var(--warn);}
   .chip-low{background:var(--bad-bg);color:var(--bad);}
-  .chevron{color:#b7c0d4;font-size:13px;transition:transform .2s;flex:none;}
+  .chevron{color:#b7c0d4;font-size:13px;transition:transform .25s var(--ease-out);flex:none;}
   .card.open .chevron{transform:rotate(180deg);}
 
-  .card-body{max-height:0;overflow:hidden;transition:max-height .25s ease;border-top:1px solid transparent;}
-  .card.open .card-body{max-height:900px;border-top:1px solid var(--line);}
+  .card-body{
+    display:grid;grid-template-rows:0fr;
+    transition:grid-template-rows .35s var(--ease-out);
+  }
+  .card.open .card-body{grid-template-rows:1fr;}
+  .card-body-inner{
+    overflow:hidden;min-height:0;border-top:1px solid transparent;
+    transition:border-color .3s;
+  }
+  .card.open .card-body-inner{border-color:var(--line);}
   .grid-crit{
     display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;
     padding:16px 18px;
@@ -197,6 +340,12 @@
   .crit.match .v{color:var(--good);}
   .crit.mismatch{background:var(--bad-bg);}
   .crit.mismatch .v{color:var(--bad);}
+  .crit-ic{width:13px;height:13px;vertical-align:-2px;margin-right:1px;}
+  .crit-ic path{
+    fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;
+    stroke-dasharray:24;stroke-dashoffset:24;
+  }
+  .card.open .crit-ic path{animation:draw .45s var(--ease-out) .12s forwards;}
   .note{
     margin:0 18px 16px;padding:12px 14px;background:var(--navy-soft);border-radius:9px;
     font-size:12.5px;color:var(--navy);line-height:1.55;
@@ -207,23 +356,47 @@
     max-width:1180px;margin:10px auto 0;padding:0 20px 40px;font-size:11px;color:#9aa6bd;
     line-height:1.6;text-align:center;
   }
+
+  /* ---------- accessibility: reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.01ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.01ms !important;
+    }
+  }
 </style>
 </head>
 <body>
 
 <div id="gate">
+  <div class="gate-blob b1" aria-hidden="true"></div>
+  <div class="gate-blob b2" aria-hidden="true"></div>
   <div class="gate-card">
-    <div class="mark">IT</div>
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 40 40">
+        <path d="M11 11v18"/>
+        <path d="M19 11h13"/>
+        <path d="M25.5 11v18"/>
+      </svg>
+    </div>
     <h1>Buscador de Guidelines</h1>
     <p id="gateStep1Text">Ingresa tu correo @intruckscorp.com para recibir un código de acceso de un solo uso.</p>
 
-    <div id="gateStepEmail">
-      <input id="gateEmail" type="email" placeholder="tunombre@intruckscorp.com" autocomplete="off">
+    <div id="gateStepEmail" class="gate-step">
+      <input id="gateEmail" type="email" placeholder="tunombre@intruckscorp.com" autocomplete="off" onkeydown="if(event.key==='Enter') sendCode()">
       <button onclick="sendCode()">Enviar código</button>
     </div>
 
-    <div id="gateStepCode" style="display:none;">
-      <input id="gateCode" type="text" maxlength="6" placeholder="Código de 6 dígitos" autocomplete="off" inputmode="numeric">
+    <div id="gateStepCode" class="gate-step" style="display:none;">
+      <div class="otp-row" id="otpRow">
+        <input class="otp-box" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Dígito 1 del código">
+        <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 2 del código">
+        <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 3 del código">
+        <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 4 del código">
+        <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 5 del código">
+        <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 6 del código">
+      </div>
       <button onclick="verifyCode()">Verificar e ingresar</button>
       <span class="reset-link" onclick="backToEmail()">Usar otro correo</span>
       <span class="reset-link" onclick="sendCode(true)">Reenviar código</span>
@@ -231,6 +404,13 @@
 
     <div class="gate-err" id="gateErr"></div>
     <div class="gate-note">Uso exclusivo del equipo comercial de InTrucks Corp. El acceso se otorga solo a correos con dominio @intruckscorp.com. Si sales de la compañía, tu acceso puede revocarse desde el panel de administración.</div>
+
+    <div class="gate-success" id="gateSuccess" aria-hidden="true">
+      <svg viewBox="0 0 56 56">
+        <circle cx="28" cy="28" r="24"/>
+        <path d="M17 29l8 8 14-16"/>
+      </svg>
+    </div>
   </div>
 </div>
 
@@ -250,7 +430,8 @@
   </header>
 
   <main>
-    <div class="mode-tabs">
+    <div class="mode-tabs" id="modeTabs">
+      <div class="tab-ind" id="tabInd" aria-hidden="true"></div>
       <div class="mode-tab active" id="tabEstado" onclick="switchMode('estado')">Buscar por Estado</div>
       <div class="mode-tab" id="tabMga" onclick="switchMode('mga')">Buscar por MGA</div>
     </div>
@@ -313,7 +494,7 @@
           </div>
         </div>
 
-        <button class="search-btn" onclick="runSearch()">Buscar opciones</button>
+        <button class="search-btn" id="searchBtn" onclick="runSearch()">Buscar opciones</button>
         <span class="reset-link" onclick="resetFilters()">Limpiar filtros</span>
       </aside>
 
@@ -327,7 +508,7 @@
         </div>
         <div id="results">
           <div class="empty-state">
-            <div class="icn">🔍</div>
+            <div class="icn"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></div>
             Selecciona al menos el estado y presiona <b>Buscar opciones</b><br>para ver qué aseguradoras encajan con el riesgo.
           </div>
         </div>
@@ -349,7 +530,7 @@
           <select id="mgaStateFilter"><option value="">Cualquiera</option></select>
         </div>
 
-        <button class="search-btn" onclick="runMgaSearch()">Ver Carriers</button>
+        <button class="search-btn" id="mgaSearchBtn" onclick="runMgaSearch()">Ver Carriers</button>
       </aside>
 
       <section>
@@ -362,7 +543,7 @@
         </div>
         <div id="mgaResults">
           <div class="empty-state">
-            <div class="icn">🏢</div>
+            <div class="icn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17"/><path d="M9 8h2M13 8h2M9 12h2M13 12h2M10.5 20.5v-4h3v4"/></svg></div>
             Selecciona una MGA y presiona <b>Ver Carriers</b><br>para estudiar sus opciones y términos.
           </div>
         </div>
@@ -378,23 +559,186 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+/* ===== motion helpers (accesibilidad primero) ===== */
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const ICONS = {
+  search:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>',
+  pin:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-10.4A6.5 6.5 0 0112 4a6.5 6.5 0 016.5 6.6C18.5 15.4 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.2"/></svg>',
+  ban:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M6 18L18 6"/></svg>',
+  building:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17"/><path d="M9 8h2M13 8h2M9 12h2M13 12h2M10.5 20.5v-4h3v4"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4L21.5 20h-19L12 4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.3" r="0.6"/></svg>'
+};
+
+const TRUCK_SVG = `
+<svg class="truck-loader" viewBox="0 0 120 64" aria-hidden="true">
+  <g class="truck-body">
+    <rect x="8" y="16" width="54" height="26" rx="3"/>
+    <path d="M62 24h14l11 10v8H62V24z"/>
+    <path class="win" d="M66 28h8l6 6H66v-6z"/>
+  </g>
+  <g class="wheel"><circle cx="26" cy="48" r="6"/><line x1="26" y1="44" x2="26" y2="52"/><line x1="22" y1="48" x2="30" y2="48"/></g>
+  <g class="wheel"><circle cx="52" cy="48" r="6"/><line x1="52" y1="44" x2="52" y2="52"/><line x1="48" y1="48" x2="56" y2="48"/></g>
+  <g class="wheel"><circle cx="78" cy="48" r="6"/><line x1="78" y1="44" x2="78" y2="52"/><line x1="74" y1="48" x2="82" y2="48"/></g>
+  <line class="road" x1="2" y1="58" x2="118" y2="58"/>
+</svg>`;
+
+const CHECK_SVG = '<svg class="crit-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 4.5"/></svg>';
+const CROSS_SVG = '<svg class="crit-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+
+function emptyStateHtml(icon, html){
+  return `<div class="empty-state"><div class="icn">${ICONS[icon]||''}</div>${html}</div>`;
+}
+function loaderHtml(msg){
+  return `<div class="empty-state">${TRUCK_SVG}${msg}</div>`;
+}
+function skeletonHtml(n){
+  return Array.from({length:n}, (_,i)=>`
+    <div class="sk-card" style="--i:${i}">
+      <div class="sk-circle"></div>
+      <div class="sk-lines"><div class="sk-bar w60"></div><div class="sk-bar w40"></div></div>
+    </div>`).join('');
+}
+
+/* gauge de anillo: se anima al entrar en viewport */
+const GAUGE_C = 119.38; /* 2*PI*19 */
+function animateGauge(g){
+  const pct = Math.max(0, Math.min(100, +g.dataset.pct || 0));
+  const ring = g.querySelector('.ring');
+  const num = g.querySelector('.gauge-num');
+  const target = GAUGE_C * (1 - pct/100);
+  if(REDUCED){
+    ring.style.strokeDashoffset = target;
+    num.textContent = pct + '%';
+    return;
+  }
+  ring.animate(
+    [{strokeDashoffset:GAUGE_C},{strokeDashoffset:target}],
+    {duration:900, easing:'cubic-bezier(.22,1,.36,1)', fill:'forwards'}
+  );
+  ring.style.strokeDashoffset = target;
+  const t0 = performance.now();
+  (function tick(t){
+    const k = Math.min(1, (t - t0) / 900);
+    const e = 1 - Math.pow(1 - k, 3);
+    num.textContent = Math.round(pct * e) + '%';
+    if(k < 1) requestAnimationFrame(tick);
+  })(t0);
+}
+const gaugeIO = ('IntersectionObserver' in window)
+  ? new IntersectionObserver(entries=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ animateGauge(e.target); gaugeIO.unobserve(e.target); }
+      });
+    }, {threshold:.4})
+  : null;
+function initGauges(root){
+  root.querySelectorAll('.gauge').forEach(g=>{
+    if(gaugeIO) gaugeIO.observe(g); else animateGauge(g);
+  });
+}
+
+/* count-up del contador de resultados */
+function animateCountText(el, n, build){
+  if(REDUCED || n === 0){ el.textContent = build(n); return; }
+  const t0 = performance.now(), dur = 500;
+  (function tick(t){
+    const k = Math.min(1, (t - t0) / dur);
+    el.textContent = build(Math.round(n * (1 - Math.pow(1 - k, 3))));
+    if(k < 1) requestAnimationFrame(tick);
+  })(t0);
+}
+
+/* spotlight que sigue al cursor en las cards */
+document.addEventListener('pointermove', e=>{
+  const c = e.target.closest && e.target.closest('.card, .mga-carrier-card');
+  if(!c) return;
+  const r = c.getBoundingClientRect();
+  c.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+  c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+});
+
+/* ripple sutil en botones principales */
+document.addEventListener('click', e=>{
+  const btn = e.target.closest && e.target.closest('.search-btn, .gate-card button');
+  if(!btn || REDUCED) return;
+  const r = btn.getBoundingClientRect();
+  const s = document.createElement('span');
+  s.className = 'ripple';
+  const d = Math.max(r.width, r.height) * 2;
+  s.style.width = s.style.height = d + 'px';
+  s.style.left = (e.clientX - r.left - d/2) + 'px';
+  s.style.top = (e.clientY - r.top - d/2) + 'px';
+  btn.appendChild(s);
+  s.addEventListener('animationend', ()=>s.remove());
+});
+
 /* ===== dataset: se carga en vivo desde Supabase (tabla "programs") ===== */
 let PROGRAMS = [];
 let MGA_CARRIERS = [];
+let dataReady = false;
+let programsLoadError = false;
+let mgaLoadError = false;
+
+function setSearchEnabled(on){
+  const a = document.getElementById('searchBtn');
+  const b = document.getElementById('mgaSearchBtn');
+  if(a) a.disabled = !on;
+  if(b) b.disabled = !on;
+}
+function parseList(val){
+  if(val==null || val==='') return [];
+  if(Array.isArray(val)) return val.map(v=>String(v).trim()).filter(Boolean);
+  return String(val).split(/[,;/|]+/).map(s=>s.trim()).filter(Boolean);
+}
+function displayVal(val){
+  if(val==null || val==='') return '—';
+  if(Array.isArray(val)) return val.filter(Boolean).join(', ') || '—';
+  if(typeof val==='boolean') return val ? 'Sí' : 'No';
+  return String(val);
+}
+function coversAll(list){
+  return list.some(x=>/^all$/i.test(String(x).trim()));
+}
+function listHasToken(raw, token){
+  const list = parseList(raw);
+  if(!list.length) return false;
+  if(coversAll(list)) return true;
+  const t = String(token).trim().toUpperCase();
+  return list.some(x=>String(x).trim().toUpperCase()===t);
+}
+function coversState(estados, state){
+  const list = Array.isArray(estados) ? estados : parseList(estados).map(s=>s.toUpperCase());
+  return list.includes(state) || list.includes('ALL');
+}
+function normalizeRow(row){
+  return { ...row, estados: parseList(row.estados).map(s=>s.toUpperCase()) };
+}
+async function fetchAllRows(table){
+  const pageSize = 1000;
+  let from = 0;
+  let all = [];
+  while(true){
+    const { data, error } = await sb.from(table).select('*').range(from, from + pageSize - 1);
+    if(error) return { data:null, error };
+    all = all.concat(data||[]);
+    if(!data || data.length < pageSize) break;
+    from += pageSize;
+  }
+  return { data:all, error:null };
+}
 async function loadMgaCarriers(){
-  const { data, error } = await sb.from('mga_carriers').select('*');
+  const { data, error } = await fetchAllRows('mga_carriers');
   if(error){
     console.error('Error cargando mga_carriers:', error);
+    mgaLoadError = true;
     document.getElementById('mgaResults').innerHTML =
-      `<div class="empty-state"><div class="icn">⚠️</div>Error: ${escapeHtml(error.message)}</div>`;
+      emptyStateHtml('warn', `Error: ${escapeHtml(error.message)}`);
     MGA_CARRIERS = [];
     return;
   }
-  console.log('mga_carriers filas cargadas:', data ? data.length : 0);
-  MGA_CARRIERS = (data||[]).map(row => ({
-    ...row,
-    estados: (row.estados||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean)
-  }));
+  mgaLoadError = false;
+  MGA_CARRIERS = (data||[]).map(normalizeRow);
 }
 function initMgaSelects(){
   const mgaSel = document.getElementById('mgaSelect');
@@ -432,11 +776,26 @@ function initMgaSelects(){
   });
   stateSel.appendChild(grp2);
 }
+function moveTabInd(){
+  const ind = document.getElementById('tabInd');
+  const active = document.querySelector('.mode-tab.active');
+  if(!ind || !active || !active.offsetWidth) return;
+  ind.style.width = active.offsetWidth + 'px';
+  ind.style.transform = `translateX(${active.offsetLeft}px)`;
+}
+window.addEventListener('resize', moveTabInd);
 function switchMode(mode){
-  document.getElementById('layoutEstado').style.display = mode==='estado' ? 'grid' : 'none';
-  document.getElementById('layoutMga').style.display = mode==='mga' ? 'grid' : 'none';
+  const le = document.getElementById('layoutEstado');
+  const lm = document.getElementById('layoutMga');
+  le.style.display = mode==='estado' ? 'grid' : 'none';
+  lm.style.display = mode==='mga' ? 'grid' : 'none';
   document.getElementById('tabEstado').classList.toggle('active', mode==='estado');
   document.getElementById('tabMga').classList.toggle('active', mode==='mga');
+  moveTabInd();
+  const incoming = mode==='estado' ? le : lm;
+  incoming.classList.remove('view-in');
+  void incoming.offsetWidth;
+  incoming.classList.add('view-in');
 }
 function runMgaSearch(){
   const mga = document.getElementById('mgaSelect').value;
@@ -444,65 +803,80 @@ function runMgaSearch(){
   const resultsDiv = document.getElementById('mgaResults');
   const countSpan = document.getElementById('mgaResultsCount');
 
+  if(!dataReady){
+    resultsDiv.innerHTML = loaderHtml('Cargando carriers…');
+    countSpan.textContent='';
+    return;
+  }
+  if(mgaLoadError){
+    resultsDiv.innerHTML = emptyStateHtml('warn', 'No se pudieron cargar los carriers. Recarga la página.');
+    countSpan.textContent='';
+    return;
+  }
   if(!mga){
-    resultsDiv.innerHTML = `<div class="empty-state"><div class="icn">🏢</div>Selecciona una MGA para comenzar.</div>`;
+    resultsDiv.innerHTML = emptyStateHtml('building', 'Selecciona una MGA para comenzar.');
     countSpan.textContent='';
     return;
   }
 
-  let rows = MGA_CARRIERS.filter(r => String(r.mga).trim() === mga);
-  if(state) rows = rows.filter(r => r.estados.includes(state));
-
-  countSpan.textContent = `${rows.length} carrier(s) bajo ${mga}`;
+  let rows = MGA_CARRIERS.filter(r => String(r.mga||'').trim() === mga);
+  if(state) rows = rows.filter(r => coversState(r.estados, state));
 
   if(rows.length===0){
-    resultsDiv.innerHTML = `<div class="empty-state"><div class="icn">🚫</div>No hay carriers de esta MGA${state? ' en ese estado':''}.</div>`;
+    countSpan.textContent = `0 carrier(s) bajo ${mga}`;
+    resultsDiv.innerHTML = emptyStateHtml('ban', `No hay carriers de esta MGA${state? ' en ese estado':''}.`);
     return;
   }
 
-  resultsDiv.innerHTML = rows.map(r=>`
-    <div class="mga-carrier-card">
+  resultsDiv.innerHTML = skeletonHtml(Math.min(rows.length, 4));
+  countSpan.textContent = '';
+
+  const render = ()=>{
+    animateCountText(countSpan, rows.length, n=>`${n} carrier(s) bajo ${mga}`);
+    resultsDiv.innerHTML = rows.map((r,i)=>`
+    <div class="mga-carrier-card card-anim" style="--i:${i}">
       <h3>${escapeHtml(r.carrier||'—')}</h3>
-      <div class="sub">${escapeHtml(r.programa||'—')} · Estados: ${escapeHtml((r.estados||[]).join(', ')||'—')}</div>
+      <div class="sub">${escapeHtml(r.programa||'—')} · Estados: ${escapeHtml(displayVal(r.estados))}</div>
       <div class="grid-crit">
-        <div class="crit"><span class="k">BOR</span><span class="v">${escapeHtml(String(r.bor||'—'))}</span></div>
-        <div class="crit"><span class="k">Periodo BOR</span><span class="v">${escapeHtml(String(r.bor_periodo||'—'))}</span></div>
-        <div class="crit"><span class="k">BOR Renewal</span><span class="v">${escapeHtml(String(r.bor_renewal||'—'))}</span></div>
-        <div class="crit"><span class="k">Años en el negocio</span><span class="v">${escapeHtml(String(r.years_biz||'—'))}</span></div>
-        <div class="crit"><span class="k">Radio de operación</span><span class="v">${escapeHtml(String(r.radio_op||'—'))}</span></div>
-        <div class="crit"><span class="k">Experiencia conductor</span><span class="v">${escapeHtml(String(r.exp_driver||'—'))}</span></div>
-        <div class="crit"><span class="k">Licencia federal</span><span class="v">${escapeHtml(String(r.lic_federal||'—'))}</span></div>
-        <div class="crit"><span class="k">Edad conductor</span><span class="v">${escapeHtml(String(r.edad_min||'—'))}–${escapeHtml(String(r.edad_max||'—'))}</span></div>
-        <div class="crit"><span class="k">Máx. MVR</span><span class="v">${escapeHtml(String(r.max_mvr||'—'))}</span></div>
-        <div class="crit"><span class="k">Team driving</span><span class="v">${escapeHtml(String(r.team_driving||'—'))}</span></div>
-        <div class="crit"><span class="k">Máx. loss ratio</span><span class="v">${escapeHtml(String(r.max_lr||'—'))}</span></div>
-        <div class="crit"><span class="k">Máx. alertas</span><span class="v">${escapeHtml(String(r.max_alertas||'—'))}</span></div>
-        <div class="crit"><span class="k">Máx. antigüedad unidad</span><span class="v">${escapeHtml(String(r.max_unit_age||'—'))}</span></div>
-        <div class="crit"><span class="k">Tipos de unidad</span><span class="v">${escapeHtml(String(r.unit_types||'—'))}</span></div>
-        <div class="crit"><span class="k">Operación/carga</span><span class="v">${escapeHtml(String(r.operacion||'—'))}</span></div>
-        <div class="crit"><span class="k">Retención</span><span class="v">${escapeHtml(String(r.retention||'—'))}</span></div>
-        <div class="crit"><span class="k">ELD/Cámaras</span><span class="v">${escapeHtml(String(r.eld_cam||'—'))}</span></div>
-        <div class="crit"><span class="k">DOT Safety</span><span class="v">${escapeHtml(String(r.dot_safety||'—'))}</span></div>
-        <div class="crit"><span class="k">Tiempo respuesta</span><span class="v">${escapeHtml(String(r.tiempo_resp||'—'))}</span></div>
+        <div class="crit"><span class="k">BOR</span><span class="v">${escapeHtml(displayVal(r.bor))}</span></div>
+        <div class="crit"><span class="k">Periodo BOR</span><span class="v">${escapeHtml(displayVal(r.bor_periodo))}</span></div>
+        <div class="crit"><span class="k">BOR Renewal</span><span class="v">${escapeHtml(displayVal(r.bor_renewal))}</span></div>
+        <div class="crit"><span class="k">Años en el negocio</span><span class="v">${escapeHtml(displayVal(r.years_biz))}</span></div>
+        <div class="crit"><span class="k">Radio de operación</span><span class="v">${escapeHtml(displayVal(r.radio_op))}</span></div>
+        <div class="crit"><span class="k">Experiencia conductor</span><span class="v">${escapeHtml(displayVal(r.exp_driver))}</span></div>
+        <div class="crit"><span class="k">Licencia federal</span><span class="v">${escapeHtml(displayVal(r.lic_federal))}</span></div>
+        <div class="crit"><span class="k">Edad conductor</span><span class="v">${escapeHtml(displayVal(r.edad_min))}–${escapeHtml(displayVal(r.edad_max))}</span></div>
+        <div class="crit"><span class="k">Máx. MVR</span><span class="v">${escapeHtml(displayVal(r.max_mvr))}</span></div>
+        <div class="crit"><span class="k">Team driving</span><span class="v">${escapeHtml(displayVal(r.team_driving))}</span></div>
+        <div class="crit"><span class="k">Máx. loss ratio</span><span class="v">${escapeHtml(displayVal(r.max_lr))}</span></div>
+        <div class="crit"><span class="k">Máx. alertas</span><span class="v">${escapeHtml(displayVal(r.max_alertas))}</span></div>
+        <div class="crit"><span class="k">Máx. antigüedad unidad</span><span class="v">${escapeHtml(displayVal(r.max_unit_age))}</span></div>
+        <div class="crit"><span class="k">Tipos de unidad</span><span class="v">${escapeHtml(displayVal(r.unit_types))}</span></div>
+        <div class="crit"><span class="k">Operación/carga</span><span class="v">${escapeHtml(displayVal(r.operacion))}</span></div>
+        <div class="crit"><span class="k">Retención</span><span class="v">${escapeHtml(displayVal(r.retention))}</span></div>
+        <div class="crit"><span class="k">ELD/Cámaras</span><span class="v">${escapeHtml(displayVal(r.eld_cam))}</span></div>
+        <div class="crit"><span class="k">DOT Safety</span><span class="v">${escapeHtml(displayVal(r.dot_safety))}</span></div>
+        <div class="crit"><span class="k">Tiempo respuesta</span><span class="v">${escapeHtml(displayVal(r.tiempo_resp))}</span></div>
       </div>
       ${r.comentario ? `<div class="note"><b>Nota:</b> ${escapeHtml(r.comentario)}</div>` : ''}
       ${r.camaras_nota ? `<div class="note"><b>Cámaras:</b> ${escapeHtml(r.camaras_nota)}</div>` : ''}
     </div>
   `).join('');
+  };
+  if(REDUCED) render(); else setTimeout(render, 400);
 }
 
 async function loadPrograms(){
-  const { data, error } = await sb.from('programs').select('*');
+  const { data, error } = await fetchAllRows('programs');
   if(error){
+    programsLoadError = true;
     document.getElementById('results').innerHTML =
-      `<div class="empty-state"><div class="icn">⚠️</div>No se pudo cargar la información (${escapeHtml(error.message)}).<br>Avisa a tu líder comercial.</div>`;
+      emptyStateHtml('warn', `No se pudo cargar la información (${escapeHtml(error.message)}).<br>Avisa a tu líder comercial.`);
     PROGRAMS = [];
     return;
   }
-  PROGRAMS = (data||[]).map(row => ({
-    ...row,
-    estados: (row.estados||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean)
-  }));
+  programsLoadError = false;
+  PROGRAMS = (data||[]).map(normalizeRow);
 }
 
 /* ===== gate: correo + código OTP vía Supabase, restringido a un dominio ===== */
@@ -510,103 +884,275 @@ const SUPABASE_URL = "https://xikhqdedhgeapczmnguy.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhpa2hxZGVkaGdlYXBjem1uZ3V5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxNDcwMzYsImV4cCI6MjA5OTcyMzAzNn0.3x7Yf527cIuQ1dkSK_uonnNMCW94tGkgcH39cqHqUUI";
 const ALLOWED_DOMAIN = "intruckscorp.com";
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
 let pendingEmail = "";
+let gateBusy = false;
+
+function isAllowedEmail(email){
+  return String(email||'').trim().toLowerCase().endsWith('@'+ALLOWED_DOMAIN);
+}
+
+function setGateErr(msg, shake){
+  const el = document.getElementById('gateErr');
+  el.textContent = msg;
+  el.classList.remove('shake');
+  if(shake && msg && !REDUCED){ void el.offsetWidth; el.classList.add('shake'); }
+}
+
+/* input OTP segmentado con auto-avance, borrado y pegado */
+const otpBoxes = [...document.querySelectorAll('.otp-box')];
+otpBoxes.forEach((box, i)=>{
+  box.addEventListener('input', ()=>{
+    box.value = box.value.replace(/\D/g,'').slice(-1);
+    box.classList.toggle('filled', !!box.value);
+    if(box.value && i < otpBoxes.length-1) otpBoxes[i+1].focus();
+    if(otpBoxes.every(b=>b.value)) verifyCode();
+  });
+  box.addEventListener('keydown', e=>{
+    if(e.key==='Backspace' && !box.value && i > 0){
+      otpBoxes[i-1].value = '';
+      otpBoxes[i-1].classList.remove('filled');
+      otpBoxes[i-1].focus();
+      e.preventDefault();
+    }
+  });
+  box.addEventListener('paste', e=>{
+    const txt = ((e.clipboardData||window.clipboardData).getData('text')||'').replace(/\D/g,'').slice(0,6);
+    if(!txt) return;
+    e.preventDefault();
+    otpBoxes.forEach((b,j)=>{
+      b.value = txt[j] || '';
+      b.classList.toggle('filled', !!b.value);
+    });
+    otpBoxes[Math.min(txt.length, otpBoxes.length-1)].focus();
+    if(txt.length === 6) verifyCode();
+  });
+});
+function getOtp(){ return otpBoxes.map(b=>b.value).join(''); }
+function clearOtp(){
+  otpBoxes.forEach(b=>{ b.value=''; b.classList.remove('filled'); });
+  otpBoxes[0].focus();
+}
+
+function showGateStep(step){
+  const em = document.getElementById('gateStepEmail');
+  const co = document.getElementById('gateStepCode');
+  em.style.display = step==='email' ? 'block' : 'none';
+  co.style.display = step==='code' ? 'block' : 'none';
+  const incoming = step==='email' ? em : co;
+  incoming.classList.remove('step-in');
+  void incoming.offsetWidth;
+  incoming.classList.add('step-in');
+  if(step==='code') otpBoxes[0].focus();
+}
 
 async function sendCode(isResend){
-  const errEl = document.getElementById('gateErr');
-  errEl.textContent = '';
+  setGateErr('');
+  if(!sb){
+    setGateErr('No se pudo cargar el servicio de acceso. Recarga la página.', true);
+    return;
+  }
   const email = (isResend ? pendingEmail : document.getElementById('gateEmail').value).trim().toLowerCase();
-
-  if(!email.endsWith('@'+ALLOWED_DOMAIN)){
-    errEl.textContent = `Solo se permiten correos @${ALLOWED_DOMAIN}.`;
+  if(!email){
+    setGateErr('Ingresa tu correo.', true);
     return;
   }
+  if(!isAllowedEmail(email)){
+    setGateErr(`Solo se permiten correos @${ALLOWED_DOMAIN}.`, true);
+    return;
+  }
+  if(gateBusy) return;
+  gateBusy = true;
   pendingEmail = email;
-  errEl.textContent = 'Enviando código…';
+  setGateErr('Enviando código…');
   const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  gateBusy = false;
   if(error){
-    errEl.textContent = /rate limit/i.test(error.message)
+    setGateErr(/rate limit/i.test(error.message)
       ? 'Demasiados intentos. Espera un minuto e inténtalo de nuevo.'
-      : 'No se pudo enviar el código: ' + error.message;
+      : 'No se pudo enviar el código: ' + error.message, true);
     return;
   }
-  errEl.textContent = '';
-  document.getElementById('gateStepEmail').style.display='none';
-  document.getElementById('gateStepCode').style.display='block';
+  setGateErr('');
+  showGateStep('code');
   document.getElementById('gateStep1Text').textContent = `Enviamos un código a ${pendingEmail}. Revisa tu bandeja (y spam).`;
 }
 
+let verifying = false;
 async function verifyCode(){
-  const errEl = document.getElementById('gateErr');
-  const code = document.getElementById('gateCode').value.trim();
-  errEl.textContent = 'Verificando…';
-  const { error } = await sb.auth.verifyOtp({ email: pendingEmail, token: code, type: 'email' });
-  if(error){
-    errEl.textContent = 'Código incorrecto o vencido. Inténtalo de nuevo.';
+  if(verifying) return;
+  if(!sb){
+    setGateErr('No se pudo cargar el servicio de acceso. Recarga la página.', true);
     return;
   }
+  if(!pendingEmail){
+    setGateErr('Ingresa primero tu correo.', true);
+    backToEmail();
+    return;
+  }
+  const code = getOtp();
+  if(!/^\d{6}$/.test(code)){
+    setGateErr('Ingresa los 6 dígitos del código.', true);
+    return;
+  }
+  verifying = true;
+  setGateErr('Verificando…');
+  const { error } = await sb.auth.verifyOtp({ email: pendingEmail, token: code, type: 'email' });
+  if(error){
+    verifying = false;
+    setGateErr('Código incorrecto o vencido. Inténtalo de nuevo.', true);
+    clearOtp();
+    return;
+  }
+  const { data } = await sb.auth.getSession();
+  const sessionEmail = data.session && data.session.user && data.session.user.email;
+  if(!isAllowedEmail(sessionEmail)){
+    await sb.auth.signOut();
+    verifying = false;
+    setGateErr('Este correo no está autorizado.', true);
+    return;
+  }
+  setGateErr('');
+  if(!REDUCED){
+    document.getElementById('gateSuccess').classList.add('show');
+    await new Promise(r=>setTimeout(r, 950));
+  }
+  verifying = false;
   unlockApp();
 }
 
 function backToEmail(){
-  document.getElementById('gateStepCode').style.display='none';
-  document.getElementById('gateStepEmail').style.display='block';
-  document.getElementById('gateErr').textContent='';
+  showGateStep('email');
+  clearOtp();
+  setGateErr('');
   document.getElementById('gateStep1Text').textContent = 'Ingresa tu correo @'+ALLOWED_DOMAIN+' para recibir un código de acceso de un solo uso.';
 }
 
 async function unlockApp(){
-  document.getElementById('gate').style.display='none';
-  document.getElementById('app').style.display='block';
-  document.getElementById('results').innerHTML = `<div class="empty-state"><div class="icn">⏳</div>Cargando guidelines actualizados…</div>`;
-  await loadPrograms();
-  await loadMgaCarriers();
+  const gate = document.getElementById('gate');
+  const app = document.getElementById('app');
+  dataReady = false;
+  setSearchEnabled(false);
+  const swap = ()=>{
+    gate.style.display = 'none';
+    app.style.display = 'block';
+    if(!REDUCED) app.classList.add('app-enter');
+    document.getElementById('results').innerHTML = loaderHtml('Cargando guidelines actualizados…');
+    moveTabInd();
+  };
+  if(document.startViewTransition && !REDUCED){
+    gate.classList.add('leaving');
+    document.startViewTransition(swap);
+  } else {
+    swap();
+  }
+  try {
+    await Promise.all([loadPrograms(), loadMgaCarriers()]);
+  } catch (e) {
+    console.error(e);
+    programsLoadError = true;
+    document.getElementById('results').innerHTML = emptyStateHtml('warn',
+      'No se pudo cargar la información. Recarga la página o avisa a tu líder comercial.');
+  }
   initApp();
   initMgaSelects();
+  dataReady = true;
+  setSearchEnabled(true);
+  if(!programsLoadError){
+    document.getElementById('results').innerHTML = emptyStateHtml('search',
+      'Selecciona al menos el estado y presiona <b>Buscar opciones</b><br>para ver qué aseguradoras encajan con el riesgo.');
+  }
 }
 
 function signOut(){
+  if(!sb){ location.reload(); return; }
   sb.auth.signOut().then(()=>location.reload());
 }
 
 (async function checkExistingSession(){
+  if(!sb){
+    setGateErr('No se pudo cargar el servicio de acceso. Recarga la página.', true);
+    return;
+  }
   const { data } = await sb.auth.getSession();
-  if(data.session && data.session.user.email && data.session.user.email.toLowerCase().endsWith('@'+ALLOWED_DOMAIN)){
+  const email = data.session && data.session.user && data.session.user.email;
+  if(isAllowedEmail(email)){
     unlockApp();
+  } else if(data.session){
+    await sb.auth.signOut();
   }
 })();
 
 /* ===== helpers to parse guideline operators ===== */
-function parseOp(raw){
-  if(raw===null||raw===undefined) return {type:'any'};
+function parseOp(raw, bareDefault){
+  if(raw===null||raw===undefined||raw==='') return {type:'any'};
+  if(typeof raw==='boolean') return {type:'any'};
   const s = String(raw).trim();
-  if(/^all$/i.test(s) || s==='') return {type:'any'};
-  if(/^n\/a$/i.test(s)) return {type:'na'};
-  let m = s.match(/^>=\s*(\d+(\.\d+)?)$/); if(m) return {type:'gte', val:parseFloat(m[1])};
-  m = s.match(/^<=\s*(\d+(\.\d+)?)$/); if(m) return {type:'lte', val:parseFloat(m[1])};
-  m = s.match(/^>\s*(\d+(\.\d+)?)$/); if(m) return {type:'gt', val:parseFloat(m[1])};
-  m = s.match(/^<\s*(\d+(\.\d+)?)$/); if(m) return {type:'lt', val:parseFloat(m[1])};
-  m = s.match(/^(\d+(\.\d+)?)$/); if(m) return {type:'eq', val:parseFloat(m[1])};
+  if(!s || /^all$/i.test(s)) return {type:'any'};
+  if(/^(n\/?a|none|null|undefined)$/i.test(s)) return {type:'na'};
+  let m = s.match(/^(>=|≥|⩾)\s*(\d+(\.\d+)?)/); if(m) return {type:'gte', val:parseFloat(m[2])};
+  m = s.match(/^(<=|≤|⩽)\s*(\d+(\.\d+)?)/); if(m) return {type:'lte', val:parseFloat(m[2])};
+  m = s.match(/^>\s*(\d+(\.\d+)?)/); if(m) return {type:'gt', val:parseFloat(m[1])};
+  m = s.match(/^<\s*(\d+(\.\d+)?)/); if(m) return {type:'lt', val:parseFloat(m[1])};
+  m = s.match(/^(?:min(?:imo|imum)?|m[ií]n(?:imo)?)\s*:?\s*(\d+(\.\d+)?)/i); if(m) return {type:'gte', val:parseFloat(m[1])};
+  m = s.match(/^(?:max(?:imo|imum)?|m[aá]x(?:imo)?)\s*:?\s*(\d+(\.\d+)?)/i); if(m) return {type:'lte', val:parseFloat(m[1])};
+  m = s.match(/^(\d+(\.\d+)?)\s*\+$/); if(m) return {type:'gte', val:parseFloat(m[1])};
+  m = s.match(/^(\d+(\.\d+)?)\s*[-–]\s*(\d+(\.\d+)?)$/); if(m) return {type:'between', min:parseFloat(m[1]), max:parseFloat(m[3])};
+  m = s.match(/^(\d+(\.\d+)?)$/); if(m) return {type: bareDefault || 'eq', val:parseFloat(m[1])};
+  const num = s.match(/(\d+(\.\d+)?)/);
+  if(num && /(min|m[ií]n)/i.test(s)) return {type:'gte', val:parseFloat(num[1])};
+  if(num && /(max|m[aá]x)/i.test(s)) return {type:'lte', val:parseFloat(num[1])};
   return {type:'text', val:s};
 }
-function checkNumeric(raw, input){
-  if(input===''||input===null||input===undefined||isNaN(input)) return null; // no data entered -> not evaluated
-  const op = parseOp(raw);
-  if(op.type==='any') return true;
-  if(op.type==='na') return null;
-  const n = parseFloat(input);
+function compareOp(op, n){
   switch(op.type){
     case 'gte': return n >= op.val;
     case 'lte': return n <= op.val;
     case 'gt': return n > op.val;
     case 'lt': return n < op.val;
     case 'eq': return n === op.val;
+    case 'between': return n >= op.min && n <= op.max;
     default: return null;
   }
 }
-function isYes(v){ return v && /^s[ií]$/i.test(String(v).trim()); }
-function isNo(v){ return v && /^no$/i.test(String(v).trim()); }
+function checkNumeric(raw, input, bareDefault){
+  if(input===''||input===null||input===undefined) return null;
+  const n = parseFloat(input);
+  if(Number.isNaN(n)) return null;
+  const op = parseOp(raw, bareDefault);
+  if(op.type==='any') return true;
+  if(op.type==='na') return null;
+  return compareOp(op, n);
+}
+function flagKind(v){
+  if(v===true || v===1) return 'yes';
+  if(v===false || v===0) return 'no';
+  if(v==null || v==='') return 'any';
+  const s = String(v).trim().toLowerCase();
+  if(!s || /^all$/.test(s) || /^(n\/?a|none)$/.test(s)) return 'any';
+  if(/not required|no requerido|no exig/.test(s)) return 'optional';
+  if(/required|obligator|mandatory|must|exig/.test(s)) return 'required';
+  if(/case by case|optional|opcional|caso por caso/.test(s)) return 'optional';
+  if(/^(s[ií]|yes|true|allowed|permitido|acepta)\b/.test(s)) return 'yes';
+  if(/^(no|false|not allowed|no permitido)|exclu/.test(s)) return 'no';
+  return 'unknown';
+}
+function teamMatches(pref, raw){
+  const kind = flagKind(raw);
+  const wantsTeam = pref==='si';
+  if(kind==='any' || kind==='optional' || kind==='unknown') return true;
+  if(wantsTeam) return kind!=='no';
+  return kind!=='required';
+}
+function eldMatches(pref, raw){
+  const kind = flagKind(raw);
+  const hasEld = pref==='si';
+  if(kind==='any' || kind==='unknown' || kind==='optional') return true;
+  if(hasEld) return true;
+  return kind!=='required' && kind!=='yes';
+}
 
 /* Estados en los que InTrucks tiene licencia propia — edita esta lista
    cuando cambie el estatus de licencias. Usa las siglas de 2 letras. */
@@ -648,8 +1194,8 @@ function initApp(){
   const unitSel = document.getElementById('fUnit');
   const unitSet = new Set();
   PROGRAMS.forEach(p=>{
-    if(p.unit_types) p.unit_types.split(',').forEach(u=>{
-      const t = u.trim(); if(t && !/^all$/i.test(t)) unitSet.add(titleCase(t));
+    parseList(p.unit_types).forEach(u=>{
+      if(u && !/^all$/i.test(u)) unitSet.add(titleCase(u));
     });
   });
   [...unitSet].sort().forEach(u=>{
@@ -659,8 +1205,8 @@ function initApp(){
   const cargoSel = document.getElementById('fCargo');
   const cargoSet = new Set();
   PROGRAMS.forEach(p=>{
-    if(p.operacion) p.operacion.split(',').forEach(u=>{
-      const t=u.trim(); if(t && !/^all$/i.test(t)) cargoSet.add(titleCase(t));
+    parseList(p.operacion).forEach(u=>{
+      if(u && !/^all$/i.test(u)) cargoSet.add(titleCase(u));
     });
   });
   [...cargoSet].sort().forEach(u=>{
@@ -685,12 +1231,12 @@ bindToggles();
 function titleCase(s){ return s.replace(/\w\S*/g, t=> t.charAt(0).toUpperCase()+t.substr(1).toLowerCase()); }
 
 const STATE_NAMES = {
-  AL:"Alabama",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",
-  DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawái",ID:"Idaho",IL:"Illinois",IN:"Indiana",
+  AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",
+  DC:"Washington D.C.",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawái",ID:"Idaho",IL:"Illinois",IN:"Indiana",
   IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Luisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",
   MI:"Michigan",MN:"Minnesota",MS:"Misisipi",MO:"Misuri",MT:"Montana",NE:"Nebraska",NV:"Nevada",
   NH:"New Hampshire",NJ:"Nueva Jersey",NM:"Nuevo México",NY:"Nueva York",NC:"Carolina del Norte",
-  ND:"Dakota del Norte",OH:"Ohio",OK:"Oklahoma",OR:"Oregón",PA:"Pensilvania",RI:"Rhode Island",
+  ND:"Dakota del Norte",OH:"Ohio",OK:"Oklahoma",OR:"Oregón",PA:"Pensilvania",PR:"Puerto Rico",RI:"Rhode Island",
   SC:"Carolina del Sur",SD:"Dakota del Sur",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",
   VA:"Virginia",WA:"Washington",WV:"Virginia Occidental",WI:"Wisconsin",WY:"Wyoming"
 };
@@ -710,7 +1256,8 @@ function resetFilters(){
   document.getElementById('fMvr').value='';
   document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.toggle-btn[data-val=""]').forEach(b=>b.classList.add('active'));
-  document.getElementById('results').innerHTML = `<div class="empty-state"><div class="icn">🔍</div>Selecciona al menos el estado y presiona <b>Buscar opciones</b><br>para ver qué aseguradoras encajan con el riesgo.</div>`;
+  document.getElementById('results').innerHTML = emptyStateHtml('search',
+    'Selecciona al menos el estado y presiona <b>Buscar opciones</b><br>para ver qué aseguradoras encajan con el riesgo.');
   document.getElementById('resultsCount').textContent='';
 }
 
@@ -719,8 +1266,18 @@ function runSearch(){
   const resultsDiv = document.getElementById('results');
   const countSpan = document.getElementById('resultsCount');
 
+  if(!dataReady){
+    resultsDiv.innerHTML = loaderHtml('Cargando guidelines actualizados…');
+    countSpan.textContent='';
+    return;
+  }
+  if(programsLoadError){
+    resultsDiv.innerHTML = emptyStateHtml('warn', 'No se pudieron cargar los programas. Recarga la página.');
+    countSpan.textContent='';
+    return;
+  }
   if(!state){
-    resultsDiv.innerHTML = `<div class="empty-state"><div class="icn">📍</div>Selecciona un estado para comenzar la búsqueda.</div>`;
+    resultsDiv.innerHTML = emptyStateHtml('pin', 'Selecciona un estado para comenzar la búsqueda.');
     countSpan.textContent='';
     return;
   }
@@ -734,48 +1291,40 @@ function runSearch(){
   const teamPref = getToggle('team');
   const eldPref = getToggle('eld');
 
-  const candidates = PROGRAMS.filter(p => p.estados.includes(state) || p.estados.includes('ALL'));
+  const candidates = PROGRAMS.filter(p => coversState(p.estados, state));
 
   const scored = candidates.map(p=>{
     const checks = [];
 
     if(unit){
-      const ok = /all/i.test(p.unit_types||'') || (p.unit_types||'').toUpperCase().includes(unit);
-      checks.push({label:'Tipo de unidad', ok, value:p.unit_types||'—'});
+      checks.push({label:'Tipo de unidad', ok:listHasToken(p.unit_types, unit), value:displayVal(p.unit_types)});
     }
     if(cargo){
-      const ok = /all/i.test(p.operacion||'') || (p.operacion||'').toUpperCase().includes(cargo);
-      checks.push({label:'Tipo de operación', ok, value:p.operacion||'—'});
+      checks.push({label:'Tipo de operación', ok:listHasToken(p.operacion, cargo), value:displayVal(p.operacion)});
     }
-    const yearsOk = checkNumeric(p.years_biz, years);
-    if(yearsOk!==null) checks.push({label:'Años en el negocio', ok:yearsOk, value:String(p.years_biz)});
+    const yearsOk = checkNumeric(p.years_biz, years, 'gte');
+    if(yearsOk!==null) checks.push({label:'Años en el negocio', ok:yearsOk, value:displayVal(p.years_biz)});
 
-    const expOk = checkNumeric(p.exp_driver, exp);
-    if(expOk!==null) checks.push({label:'Experiencia del conductor', ok:expOk, value:String(p.exp_driver)});
+    const expOk = checkNumeric(p.exp_driver, exp, 'gte');
+    if(expOk!==null) checks.push({label:'Experiencia del conductor', ok:expOk, value:displayVal(p.exp_driver)});
 
     if(age!==''){
-      const minOk = checkNumeric('>='+p.edad_min, age);
-      const maxOk = checkNumeric('<='+p.edad_max, age);
-      let ok = true;
-      if(!/all/i.test(String(p.edad_min))) ok = ok && (parseFloat(age) >= parseFloat(p.edad_min));
-      if(!/all/i.test(String(p.edad_max))) ok = ok && (parseFloat(age) <= parseFloat(p.edad_max));
-      checks.push({label:'Edad del conductor', ok, value:`${p.edad_min}–${p.edad_max}`});
+      const minOk = checkNumeric(p.edad_min, age, 'gte');
+      const maxOk = checkNumeric(p.edad_max, age, 'lte');
+      if(minOk!==null || maxOk!==null){
+        const ok = (minOk!==false) && (maxOk!==false);
+        checks.push({label:'Edad del conductor', ok, value:`${displayVal(p.edad_min)}–${displayVal(p.edad_max)}`});
+      }
     }
 
-    const mvrOk = checkNumeric(p.max_mvr, mvr);
-    if(mvrOk!==null) checks.push({label:'Máx. violaciones MVR', ok:mvrOk, value:String(p.max_mvr)});
+    const mvrOk = checkNumeric(p.max_mvr, mvr, 'lte');
+    if(mvrOk!==null) checks.push({label:'Máx. violaciones MVR', ok:mvrOk, value:displayVal(p.max_mvr)});
 
     if(teamPref){
-      const wants = teamPref==='si';
-      const has = isYes(p.team_driving);
-      const ok = /all/i.test(String(p.team_driving)) ? true : (wants === has);
-      checks.push({label:'Team driving', ok, value:p.team_driving||'—'});
+      checks.push({label:'Team driving', ok:teamMatches(teamPref, p.team_driving), value:displayVal(p.team_driving)});
     }
     if(eldPref){
-      const wants = eldPref==='si';
-      const has = isYes(p.eld_cam) || /case by case/i.test(String(p.eld_cam));
-      const ok = /all/i.test(String(p.eld_cam)) ? true : (wants ? has : !isYes(p.eld_cam));
-      checks.push({label:'ELD / Cámaras', ok, value:p.eld_cam||'—'});
+      checks.push({label:'ELD / Cámaras', ok:eldMatches(eldPref, p.eld_cam), value:displayVal(p.eld_cam)});
     }
 
     const total = checks.length;
@@ -790,7 +1339,8 @@ function runSearch(){
   // con la fila que mejor coincide con lo que el usuario buscó.
   const dedupMap = new Map();
   scored.forEach(s=>{
-    const key = (s.program.programa||'').trim().toLowerCase();
+    const p = s.program;
+    const key = [p.mga, p.carrier, p.programa].map(x=>String(x||'').trim().toLowerCase()).join('|');
     const existing = dedupMap.get(key);
     if(!existing || s.ratio > existing.ratio || (s.ratio === existing.ratio && s.total > existing.total)){
       dedupMap.set(key, s);
@@ -799,74 +1349,98 @@ function runSearch(){
   const deduped = [...dedupMap.values()];
   deduped.sort((a,b)=> b.ratio - a.ratio || (b.total-a.total));
 
-  countSpan.textContent = `${deduped.length} programa(s) disponibles en ${STATE_NAMES[state]||state}`;
-
   if(deduped.length===0){
-    resultsDiv.innerHTML = `<div class="empty-state"><div class="icn">🚫</div>No encontramos programas activos para ese estado.<br>Confirma con tu líder comercial si hay una opción manual.</div>`;
+    countSpan.textContent = `0 programa(s) disponibles en ${STATE_NAMES[state]||state}`;
+    resultsDiv.innerHTML = emptyStateHtml('ban',
+      'No encontramos programas activos para ese estado.<br>Confirma con tu líder comercial si hay una opción manual.');
     return;
   }
 
-  resultsDiv.innerHTML = deduped.map((s,idx)=>{
-    const p = s.program;
-    let gClass='g-full', chipClass='chip-full', chipLabel='Cumple todo';
-    if(s.total>0){
-      if(s.ratio < 1 && s.ratio >= 0.6){ gClass='g-partial'; chipClass='chip-partial'; chipLabel='Revisar puntos'; }
-      else if(s.ratio < 0.6){ gClass='g-low'; chipClass='chip-low'; chipLabel='Poco viable'; }
-    } else {
-      chipLabel='Disponible';
-    }
-    const pct = s.total>0 ? Math.round(s.ratio*100) : 100;
+  resultsDiv.innerHTML = skeletonHtml(Math.min(deduped.length, 4));
+  countSpan.textContent = '';
 
-    const critHtml = s.checks.map(c=>`
-      <div class="crit ${c.ok?'match':'mismatch'}">
-        <span class="k">${c.label}</span>
-        <span class="v">${c.ok?'✓':'✕'} ${escapeHtml(String(c.value))}</span>
-      </div>
-    `).join('') + baseCriteria(p);
+  const render = ()=>{
+    animateCountText(countSpan, deduped.length, n=>`${n} programa(s) disponibles en ${STATE_NAMES[state]||state}`);
+    resultsDiv.innerHTML = deduped.map((s,idx)=>{
+      const p = s.program;
+      let gClass='g-full', chipClass='chip-full', chipLabel='Cumple todo';
+      if(s.total>0){
+        if(s.ratio < 1 && s.ratio >= 0.6){ gClass='g-partial'; chipClass='chip-partial'; chipLabel='Revisar puntos'; }
+        else if(s.ratio < 0.6){ gClass='g-low'; chipClass='chip-low'; chipLabel='Poco viable'; }
+      } else {
+        chipLabel='Disponible';
+      }
+      const pct = s.total>0 ? Math.round(s.ratio*100) : 100;
+      const who = [p.carrier, p.mga].filter(Boolean).map(displayVal).join(' · ');
+      const subParts = [
+        who,
+        p.dot_safety ? `DOT: ${displayVal(p.dot_safety)}` : '',
+        p.tiempo_resp ? `Respuesta: ${displayVal(p.tiempo_resp)}` : ''
+      ].filter(Boolean);
 
-    const noteHtml = p.comentario ? `<div class="note"><b>Nota del suscriptor:</b> ${escapeHtml(p.comentario)}</div>` : '';
+      const critHtml = s.checks.map(c=>`
+        <div class="crit ${c.ok?'match':'mismatch'}">
+          <span class="k">${escapeHtml(c.label)}</span>
+          <span class="v">${c.ok?CHECK_SVG:CROSS_SVG} ${escapeHtml(c.value)}</span>
+        </div>
+      `).join('') + baseCriteria(p);
 
-    return `
-    <div class="card" id="card-${idx}">
-      <div class="card-head" onclick="toggleCard(${idx})">
-        <div class="card-head-left">
-          <div class="gauge ${gClass}">${pct}%</div>
-          <div>
-            <div class="card-title">${escapeHtml(p.programa)}</div>
-            <div class="card-sub">DOT: ${escapeHtml(p.dot_safety||'—')} · Respuesta: ${escapeHtml(String(p.tiempo_resp||'—'))}</div>
+      const noteHtml = p.comentario ? `<div class="note"><b>Nota del suscriptor:</b> ${escapeHtml(p.comentario)}</div>` : '';
+
+      return `
+      <div class="card card-anim" id="card-${idx}" style="--i:${idx}">
+        <div class="card-head" onclick="toggleCard(${idx})">
+          <div class="card-head-left">
+            <div class="gauge ${gClass}" data-pct="${pct}">
+              <svg viewBox="0 0 46 46" aria-hidden="true">
+                <circle class="track" cx="23" cy="23" r="19"/>
+                <circle class="ring" cx="23" cy="23" r="19"/>
+              </svg>
+              <span class="gauge-num">0%</span>
+            </div>
+            <div>
+              <div class="card-title">${escapeHtml(p.programa||'—')}</div>
+              <div class="card-sub">${escapeHtml(subParts.join(' · ')||'—')}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="card-chip ${chipClass}">${chipLabel}</span>
+            <span class="chevron">▾</span>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span class="card-chip ${chipClass}">${chipLabel}</span>
-          <span class="chevron">▾</span>
+        <div class="card-body">
+          <div class="card-body-inner">
+            <div class="grid-crit">${critHtml}</div>
+            ${noteHtml}
+          </div>
         </div>
-      </div>
-      <div class="card-body">
-        <div class="grid-crit">${critHtml}</div>
-        ${noteHtml}
-      </div>
-    </div>`;
-  }).join('');
+      </div>`;
+    }).join('');
+    initGauges(resultsDiv);
+  };
+  if(REDUCED) render(); else setTimeout(render, 400);
 }
 
 function baseCriteria(p){
   return `
-    <div class="crit"><span class="k">Radio de operación</span><span class="v">${escapeHtml(String(p.radio_op||'—'))}</span></div>
-    <div class="crit"><span class="k">Licencia federal</span><span class="v">${escapeHtml(String(p.lic_federal||'—'))}</span></div>
-    <div class="crit"><span class="k">Máx. antigüedad unidad</span><span class="v">${escapeHtml(String(p.max_unit_age||'—'))}</span></div>
-    <div class="crit"><span class="k">Máx. loss ratio</span><span class="v">${escapeHtml(String(p.max_lr||'—'))}</span></div>
-    <div class="crit"><span class="k">Máx. alertas</span><span class="v">${escapeHtml(String(p.max_alertas||'—'))}</span></div>
-    <div class="crit"><span class="k">Retención</span><span class="v">${escapeHtml(String(p.retention||'—'))}</span></div>
-    <div class="crit"><span class="k">Tipos de unidad</span><span class="v">${escapeHtml(String(p.unit_types||'—'))}</span></div>
-    <div class="crit"><span class="k">Operación / carga</span><span class="v">${escapeHtml(String(p.operacion||'—'))}</span></div>
+    <div class="crit"><span class="k">Radio de operación</span><span class="v">${escapeHtml(displayVal(p.radio_op))}</span></div>
+    <div class="crit"><span class="k">Licencia federal</span><span class="v">${escapeHtml(displayVal(p.lic_federal))}</span></div>
+    <div class="crit"><span class="k">Máx. antigüedad unidad</span><span class="v">${escapeHtml(displayVal(p.max_unit_age))}</span></div>
+    <div class="crit"><span class="k">Máx. loss ratio</span><span class="v">${escapeHtml(displayVal(p.max_lr))}</span></div>
+    <div class="crit"><span class="k">Máx. alertas</span><span class="v">${escapeHtml(displayVal(p.max_alertas))}</span></div>
+    <div class="crit"><span class="k">Retención</span><span class="v">${escapeHtml(displayVal(p.retention))}</span></div>
+    <div class="crit"><span class="k">Tipos de unidad</span><span class="v">${escapeHtml(displayVal(p.unit_types))}</span></div>
+    <div class="crit"><span class="k">Operación / carga</span><span class="v">${escapeHtml(displayVal(p.operacion))}</span></div>
   `;
 }
 
 function toggleCard(idx){
-  document.getElementById('card-'+idx).classList.toggle('open');
+  const el = document.getElementById('card-'+idx);
+  if(el) el.classList.toggle('open');
 }
 function escapeHtml(s){
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  if(s==null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 </script>
