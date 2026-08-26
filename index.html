@@ -183,12 +183,12 @@
     display:block;font-size:12px;font-weight:600;color:var(--ink);margin-bottom:6px;
   }
   .field .opt{font-weight:400;color:#9aa6bd;font-size:11px;}
-  select,input[type=number]{
+  select,input[type=number],input.nv-avaluo{
     width:100%;padding:10px 12px;border-radius:9px;border:1.5px solid var(--line);
     font-size:13.5px;font-family:'Inter',sans-serif;outline:none;background:#fff;color:var(--ink);
     transition:border-color .15s, box-shadow .15s;
   }
-  select:focus,input[type=number]:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft);}
+  select:focus,input[type=number]:focus,input.nv-avaluo:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft);}
   .toggle-row{display:flex;gap:8px;}
   .toggle-btn{
     flex:1;padding:9px 6px;border-radius:9px;border:1.5px solid var(--line);background:#fff;
@@ -269,8 +269,8 @@
   .nv-check-meta{flex:1;min-width:0;}
   .nv-check-label{font-size:13px;font-weight:600;color:var(--ink);display:block;}
   .nv-check-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
-  .nv-check-row input[type=number]{margin-top:8px;}
-  .nv-check-row input[type=number]:disabled{opacity:.45;background:#f3f5f9;}
+  .nv-check-row input.nv-avaluo{margin-top:8px;}
+  .nv-check-row input.nv-avaluo:disabled{opacity:.45;background:#f3f5f9;}
   .nv-avaluo-hint{font-size:11.5px;color:var(--warn);margin-top:6px;}
   .nv-summary-list{display:flex;flex-direction:column;gap:10px;margin:0 0 14px;}
   .nv-summary-line{
@@ -999,13 +999,10 @@ async function loadNewVentures(){
 
 let nvSelectedRegion = '';
 
-/** Categorías globales: se muestran sin filtrar por región activa. */
+/** Categorías globales por alias de `categoria` (Cargo / Excess). */
 const NV_GLOBAL_CAT_ALIASES = {
   CARGO: ['CARGO', 'MTC'],
-  'EXCESS MTC': ['EXCESS MTC', 'EXCESS_MTC', 'EXCESSMTC'],
-  PD: ['PD', 'PHYSICAL DAMAGE', 'PHYSICAL_DAMAGE'],
-  'TI-NOT': ['TI-NOT', 'TI NOT', 'TINOT', 'TI_NOT'],
-  ENDOSOS: ['ENDOSOS', 'ENDOSO']
+  'EXCESS MTC': ['EXCESS MTC', 'EXCESS_MTC', 'EXCESSMTC']
 };
 
 function nvMoney(n){
@@ -1020,6 +1017,44 @@ function nvCatMatches(rowCat, targetKey){
   const c = nvNormCat(rowCat);
   const aliases = NV_GLOBAL_CAT_ALIASES[targetKey] || [nvNormCat(targetKey)];
   return aliases.includes(c);
+}
+
+function nvRowText(row){
+  return [row.categoria, row.cobertura, row.indicacion, row.compania]
+    .map(v => String(v||'').toUpperCase())
+    .join(' | ');
+}
+
+/** ¿El registro pertenece a PD (Physical Damage), incl. ENDOSOS que se refieren a PD? */
+function nvIsPdRow(row){
+  const cat = nvNormCat(row.categoria);
+  const cob = String(row.cobertura||'').toUpperCase();
+  const ind = String(row.indicacion||'').toUpperCase();
+  const blob = nvRowText(row);
+  if(['PD', 'PHYSICAL DAMAGE', 'PHYSICAL_DAMAGE'].includes(cat)) return true;
+  if(cob.includes('PHYSICAL DAMAGE') || ind.includes('PHYSICAL DAMAGE')) return true;
+  if(/\bPD\b/.test(cob) || /\bPD\b/.test(ind)) return true;
+  if((cat === 'ENDOSOS' || cat === 'ENDOSO') &&
+     (blob.includes('PHYSICAL DAMAGE') || /\bPD\b/.test(blob))) return true;
+  return false;
+}
+
+/** ¿El registro pertenece a TI-NOT, incl. ENDOSOS que se refieren a TI-NOT? */
+function nvIsTinotRow(row){
+  const cat = nvNormCat(row.categoria);
+  const cob = String(row.cobertura||'').toUpperCase();
+  const ind = String(row.indicacion||'').toUpperCase();
+  const blob = nvRowText(row);
+  if(['TI-NOT', 'TI NOT', 'TINOT', 'TI_NOT'].includes(cat)) return true;
+  const hit = (s) =>
+    s.includes('TRAILER INTERCHANGE') ||
+    s.includes('NON-OWNED') ||
+    s.includes('NON OWNED') ||
+    s.includes('TI-NOT') ||
+    s.includes('TINOT');
+  if(hit(cob) || hit(ind)) return true;
+  if((cat === 'ENDOSOS' || cat === 'ENDOSO') && hit(blob)) return true;
+  return false;
 }
 
 /** Clave estable de fila (incluye región) para lookup en NV_PRICING. */
@@ -1080,19 +1115,31 @@ function nvRowsLiability(){
   );
 }
 
-/**
- * Globales (Cargo, Excess MTC, PD, TI-NOT):
- * incluye filas de la región activa, de otra región, o con región nula/vacía.
- * Deduplica opciones idénticas entre regiones.
- */
-function nvRowsGlobal(targetKey){
-  const rows = NV_PRICING.filter(r => nvCatMatches(r.categoria, targetKey));
+function nvDedupeRows(rows){
   const seen = new Map();
   rows.forEach(row=>{
     const key = nvDedupeKey(row);
     if(!seen.has(key)) seen.set(key, row);
   });
   return [...seen.values()];
+}
+
+/**
+ * Globales:
+ * - Cargo / Excess: por categoria
+ * - PD / TI-NOT: por cobertura/indicacion/categoria (incl. ENDOSOS remapeados)
+ * Incluye región activa, otra, o nula/vacía. Deduplica entre regiones.
+ */
+function nvRowsGlobal(targetKey){
+  let rows;
+  if(targetKey === 'PD'){
+    rows = NV_PRICING.filter(nvIsPdRow);
+  } else if(targetKey === 'TI-NOT'){
+    rows = NV_PRICING.filter(nvIsTinotRow);
+  } else {
+    rows = NV_PRICING.filter(r => nvCatMatches(r.categoria, targetKey));
+  }
+  return nvDedupeRows(rows);
 }
 
 function nvItemLabel(row){
@@ -1180,39 +1227,42 @@ function renderNvCategories(){
   const excess = nvRowsGlobal('EXCESS MTC');
   const pd = nvRowsGlobal('PD');
   const tinot = nvRowsGlobal('TI-NOT');
-  const endosos = nvRowsGlobal('ENDOSOS').filter(r =>
-    String(r.tipo_precio||'').toLowerCase() === 'porcentaje'
-  );
 
   let avaluoSeq = 0;
 
-  const checkRows = (rows, name) => {
+  /**
+   * @param {object[]} rows
+   * @param {string} name
+   * @param {{ forcePct?: boolean }} [opts] forcePct: PD/TI-NOT → avalúo + cálculo %
+   */
+  const checkRows = (rows, name, opts={}) => {
+    const forcePct = !!opts.forcePct;
     if(!rows.length){
       return `<div class="nv-summary-empty">Sin opciones de ${escapeHtml(name)} disponibles.</div>`;
     }
     return `<div class="nv-check-list">${rows.map((row)=>{
       const key = nvRowKey(row);
       const label = nvItemLabel(row);
-      const isPct = String(row.tipo_precio||'').toLowerCase() === 'porcentaje';
+      const isPct = forcePct || String(row.tipo_precio||'').toLowerCase() === 'porcentaje';
       const subParts = [];
       if(row.compania && String(row.cobertura||'').trim() !== String(row.compania).trim()){
         subParts.push(String(row.compania).trim());
       }
       if(row.indicacion) subParts.push(String(row.indicacion).trim());
-      if(!isPct && String(row.tipo_precio||'').toLowerCase() === 'fijo'){
-        subParts.push(`Down ${nvMoney(row.down_payment)} · Mensual ${nvMoney(row.monthly_payment)}`);
-      } else if(isPct && row.porcentaje != null){
+      if(isPct && row.porcentaje != null){
         subParts.push(`${row.porcentaje}% del avalúo`);
+      } else if(!isPct && String(row.tipo_precio||'').toLowerCase() === 'fijo'){
+        subParts.push(`Down ${nvMoney(row.down_payment)} · Mensual ${nvMoney(row.monthly_payment)}`);
       }
       const seq = avaluoSeq++;
       const avaluoHtml = isPct ? `
-        <input type="number" class="nv-avaluo" data-nv-key="${escapeHtml(key)}" id="nv-avaluo-${seq}"
-          min="0" step="100" placeholder="Valor del vehículo, ej: 45000" disabled>
+        <input type="text" class="nv-avaluo" data-nv-key="${escapeHtml(key)}" id="nv-avaluo-${seq}"
+          inputmode="numeric" autocomplete="off" placeholder="Valor del vehículo, ej: 45,000" disabled>
         <div class="nv-avaluo-hint" data-nv-hint="${escapeHtml(key)}" hidden>Ingresa el avalúo</div>
       ` : '';
       return `
         <div class="nv-check-row" data-nv-key="${escapeHtml(key)}">
-          <input type="checkbox" class="nv-opt${isPct?' nv-endoso-check':''}" data-nv-key="${escapeHtml(key)}" data-nv-kind="${isPct?'pct':'fixed'}" id="nv-chk-${seq}">
+          <input type="checkbox" class="nv-opt" data-nv-key="${escapeHtml(key)}" data-nv-kind="${isPct?'pct':'fixed'}" id="nv-chk-${seq}">
           <span class="nv-check-meta">
             <label class="nv-check-label" for="nv-chk-${seq}">${escapeHtml(label)}</label>
             ${subParts.length ? `<span class="nv-check-sub">${escapeHtml(subParts.join(' · '))}</span>` : ''}
@@ -1221,13 +1271,6 @@ function renderNvCategories(){
         </div>
       `;
     }).join('')}</div>`;
-  };
-
-  const endososRows = () => {
-    if(!endosos.length){
-      return `<div class="nv-summary-empty">Sin endosos porcentuales disponibles.</div>`;
-    }
-    return checkRows(endosos, 'Endosos');
   };
 
   host.innerHTML = `
@@ -1258,22 +1301,15 @@ function renderNvCategories(){
     <div class="card" id="nv-card-pd" data-nv-card="pd">
       <div class="nv-card-body">
         <h3 class="nv-card-title">PD (Physical Damage)</h3>
-        <p class="nv-card-hint">Global · disponible en EAST y TX-CA-AZ. Puedes marcar varias.</p>
-        ${checkRows(pd, 'PD')}
+        <p class="nv-card-hint">Global · marca la opción e ingresa el avalúo del vehículo.</p>
+        ${checkRows(pd, 'PD (Physical Damage)', { forcePct: true })}
       </div>
     </div>
     <div class="card" id="nv-card-tinot" data-nv-card="tinot">
       <div class="nv-card-body">
         <h3 class="nv-card-title">TI-NOT (Trailer Interchange / Non-Owned)</h3>
-        <p class="nv-card-hint">Global · disponible en EAST y TX-CA-AZ. Puedes marcar varias.</p>
-        ${checkRows(tinot, 'TI-NOT')}
-      </div>
-    </div>
-    <div class="card" id="nv-card-endosos" data-nv-card="endosos">
-      <div class="nv-card-body">
-        <h3 class="nv-card-title">Endosos</h3>
-        <p class="nv-card-hint">Activa el endoso e ingresa el avalúo del vehículo.</p>
-        ${endososRows()}
+        <p class="nv-card-hint">Global · marca la opción e ingresa el avalúo del vehículo.</p>
+        ${checkRows(tinot, 'TI-NOT', { forcePct: true })}
       </div>
     </div>
   `;
@@ -1291,7 +1327,11 @@ function renderNvCategories(){
         const hint = host.querySelector(`.nv-avaluo-hint[data-nv-hint="${CSS.escape(key)}"]`);
         if(input){
           input.disabled = !cb.checked;
-          if(!cb.checked){ input.value = ''; if(hint) hint.hidden = true; }
+          if(!cb.checked){
+            input.value = '';
+            delete input.dataset.rawVal;
+            if(hint) hint.hidden = true;
+          }
         }
       }
       calcularResumen();
@@ -1299,25 +1339,73 @@ function renderNvCategories(){
   });
 
   host.querySelectorAll('.nv-avaluo').forEach(inp=>{
-    inp.addEventListener('input', calcularResumen);
+    inp.addEventListener('input', ()=>{
+      formatNvAvaluoInput(inp);
+      calcularResumen();
+    });
   });
 
   calcularResumen();
+}
+
+/** Formatea avalúo en vivo: solo dígitos → miles US; guarda puro en dataset.rawVal. */
+function formatNvAvaluoInput(input){
+  if(!input) return;
+  const raw = String(input.value||'').replace(/\D/g, '');
+  input.dataset.rawVal = raw;
+  if(!raw){
+    input.value = '';
+    return;
+  }
+  input.value = Number(raw).toLocaleString('en-US');
+}
+
+/** Lee el avalúo numérico desde dataset.rawVal o limpiando comas/$ del value. */
+function nvReadAvaluo(input){
+  if(!input || input.disabled) return NaN;
+  if(input.dataset.rawVal != null && input.dataset.rawVal !== ''){
+    return parseFloat(input.dataset.rawVal);
+  }
+  const cleaned = String(input.value||'').replace(/[$,\s]/g, '');
+  if(!cleaned) return NaN;
+  return parseFloat(cleaned);
 }
 
 function nvFindRowByKey(key){
   return NV_PRICING.find(row => nvRowKey(row) === key) || null;
 }
 
+/**
+ * Cálculo por porcentaje (PD / TI-NOT).
+ * Fallbacks: financiamiento_down_pct → 20, financiamiento_cuotas → 9.
+ * Retorna null si el avalúo o el porcentaje no son válidos (> 0).
+ */
 function nvCalcPorcentaje(row, avaluo){
+  const a = Number(avaluo);
   const pct = Number(row.porcentaje);
-  const downPct = Number(row.financiamiento_down_pct);
-  const cuotas = Number(row.financiamiento_cuotas);
-  if(!(avaluo > 0) || !(pct > 0) || !(downPct >= 0) || !(cuotas > 0)) return null;
-  const primaAnual = avaluo * (pct / 100);
+  if(!(a > 0) || !(pct > 0)) return null;
+
+  const downPct = Number(row.financiamiento_down_pct) || 20;
+  const cuotasRaw = Number(row.financiamiento_cuotas);
+  const cuotas = (cuotasRaw && cuotasRaw > 0) ? cuotasRaw : 9;
+
+  const primaAnual = a * (pct / 100);
   const down = primaAnual * (downPct / 100);
-  const mensualidad = (primaAnual - down) / cuotas;
-  return { down, monthly: mensualidad, primaAnual };
+  const financiado = primaAnual - down;
+  const mensualidad = financiado / cuotas;
+
+  if(!Number.isFinite(down) || !Number.isFinite(mensualidad)) return null;
+
+  return {
+    avaluo: a,
+    pct,
+    downPct,
+    cuotas,
+    primaAnual,
+    down,
+    financiado,
+    monthly: mensualidad
+  };
 }
 
 function calcularResumen(){
@@ -1325,55 +1413,93 @@ function calcularResumen(){
   if(!box) return;
 
   const items = [];
+  const itemsDetalle = [];
+
+  // --- Liability (fijo, filtrado por región) ---
   const liabilityVal = (document.getElementById('nvLiability')||{}).value || '';
   if(liabilityVal){
     nvRowsLiability()
       .filter(r => String(r.compania||'').trim() === liabilityVal)
       .forEach(row=>{
-        items.push({
-          name: nvItemLabel(row),
-          down: Number(row.down_payment)||0,
-          monthly: Number(row.monthly_payment)||0,
-          warn: false
+        const down = Number(row.down_payment) || 0;
+        const monthly = Number(row.monthly_payment) || 0;
+        const name = nvItemLabel(row);
+        items.push({ name, down, monthly, warn: false, kind: 'fijo' });
+        itemsDetalle.push({
+          name, kind: 'fijo', categoria: row.categoria,
+          down, monthly, warn: false
         });
       });
   }
 
+  // --- Coberturas marcadas (fijo o porcentaje) ---
   document.querySelectorAll('#nvCategoryBlocks .nv-opt:checked').forEach(cb=>{
     const key = cb.dataset.nvKey;
     const row = nvFindRowByKey(key);
     if(!row) return;
+    const name = nvItemLabel(row);
     const kind = cb.dataset.nvKind;
-    if(kind === 'pct' || String(row.tipo_precio||'').toLowerCase() === 'porcentaje'){
+    const isPct = kind === 'pct' || String(row.tipo_precio||'').toLowerCase() === 'porcentaje';
+
+    if(isPct){
       const input = document.querySelector(`.nv-avaluo[data-nv-key="${CSS.escape(key)}"]`);
       const hint = document.querySelector(`.nv-avaluo-hint[data-nv-hint="${CSS.escape(key)}"]`);
-      const avaluo = input ? Number(input.value) : 0;
+      // Desmarcado / deshabilitado / vacío / ≤0 → no suma, solo aviso
+      const avaluo = nvReadAvaluo(input);
       const calc = nvCalcPorcentaje(row, avaluo);
+
       if(!calc){
         if(hint) hint.hidden = false;
-        items.push({ name: nvItemLabel(row), down:0, monthly:0, warn:true });
+        items.push({ name, down: 0, monthly: 0, warn: true, kind: 'porcentaje' });
+        itemsDetalle.push({
+          name, kind: 'porcentaje', categoria: row.categoria,
+          avaluo: Number.isFinite(avaluo) ? avaluo : (input ? input.value : ''),
+          warn: true, motivo: 'Ingresa el avalúo',
+          down: 0, monthly: 0
+        });
         return;
       }
+
       if(hint) hint.hidden = true;
-      items.push({ name: nvItemLabel(row), down: calc.down, monthly: calc.monthly, warn:false });
-    } else {
-      items.push({
-        name: nvItemLabel(row),
-        down: Number(row.down_payment)||0,
-        monthly: Number(row.monthly_payment)||0,
+      items.push({ name, down: calc.down, monthly: calc.monthly, warn: false, kind: 'porcentaje' });
+      itemsDetalle.push({
+        name, kind: 'porcentaje', categoria: row.categoria,
+        avaluo: calc.avaluo,
+        porcentaje: calc.pct,
+        downPct: calc.downPct,
+        cuotas: calc.cuotas,
+        primaAnual: calc.primaAnual,
+        financiado: calc.financiado,
+        down: calc.down,
+        monthly: calc.monthly,
         warn: false
+      });
+    } else {
+      const down = Number(row.down_payment) || 0;
+      const monthly = Number(row.monthly_payment) || 0;
+      items.push({ name, down, monthly, warn: false, kind: 'fijo' });
+      itemsDetalle.push({
+        name, kind: 'fijo', categoria: row.categoria,
+        down, monthly, warn: false
       });
     }
   });
 
   if(!items.length){
     box.innerHTML = `<div class="nv-summary-empty">Selecciona coberturas para ver el estimado</div>`;
+    console.log('[NV Audit]', {
+      itemsActivos: 0,
+      totalDown: nvMoney(0),
+      totalMensual: nvMoney(0),
+      itemsDetalle: []
+    });
     return;
   }
 
   let totalDown = 0;
   let totalMonthly = 0;
   const lines = items.map(it=>{
+    // Solo ítems con avalúo válido (o fijos) suman al total
     if(!it.warn){
       totalDown += it.down;
       totalMonthly += it.monthly;
@@ -1400,6 +1526,14 @@ function calcularResumen(){
       </div>
     </div>
   `;
+
+  const activosQueSuman = items.filter(it => !it.warn).length;
+  console.log('[NV Audit]', {
+    itemsActivos: activosQueSuman,
+    totalDown: nvMoney(totalDown),
+    totalMensual: nvMoney(totalMonthly),
+    itemsDetalle
+  });
 }
 
 /* ===== gate: correo + código OTP vía Supabase, restringido a un dominio ===== */
