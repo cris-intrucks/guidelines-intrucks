@@ -1376,11 +1376,15 @@ function nvFindRowByKey(key){
 }
 
 /**
- * Cálculo por porcentaje (PD / TI-NOT).
+ * Cálculo por porcentaje (PD / TI-NOT) con financiamiento APR 18% anual.
  * Fallbacks: financiamiento_down_pct → 20, financiamiento_cuotas → 9.
  * Retorna null si el avalúo o el porcentaje no son válidos (> 0).
+ * Liability / Cargo / Excess NO usan esta función (usan monthly_payment de BD).
  */
 function nvCalcPorcentaje(row, avaluo){
+  const APR = 0.18;
+  const i = APR / 12; // 0.015
+
   const a = Number(avaluo);
   const pct = Number(row.porcentaje);
   if(!(a > 0) || !(pct > 0)) return null;
@@ -1389,10 +1393,18 @@ function nvCalcPorcentaje(row, avaluo){
   const cuotasRaw = Number(row.financiamiento_cuotas);
   const cuotas = (cuotasRaw && cuotasRaw > 0) ? cuotasRaw : 9;
 
-  const primaAnual = a * (pct / 100);
-  const down = primaAnual * (downPct / 100);
-  const financiado = primaAnual - down;
-  const mensualidad = financiado / cuotas;
+  const prima = a * (pct / 100);
+  const down = prima * (downPct / 100);
+  const P = prima - down;
+
+  // Cuota lineal sin interés (solo para auditoría / comparación)
+  const mensualidadLineal = (P > 0 && cuotas > 0) ? (P / cuotas) : 0;
+
+  let mensualidad = 0;
+  if(P > 0){
+    const factor = Math.pow(1 + i, cuotas);
+    mensualidad = P * (i * factor) / (factor - 1);
+  }
 
   if(!Number.isFinite(down) || !Number.isFinite(mensualidad)) return null;
 
@@ -1401,9 +1413,12 @@ function nvCalcPorcentaje(row, avaluo){
     pct,
     downPct,
     cuotas,
-    primaAnual,
+    apr: APR,
+    i,
+    primaAnual: prima,
     down,
-    financiado,
+    financiado: P,
+    monthlyLineal: mensualidadLineal,
     monthly: mensualidad
   };
 }
@@ -1415,7 +1430,7 @@ function calcularResumen(){
   const items = [];
   const itemsDetalle = [];
 
-  // --- Liability (fijo, filtrado por región) ---
+  // --- Liability (fijo: down + monthly_payment de BD, financiamiento ya integrado) ---
   const liabilityVal = (document.getElementById('nvLiability')||{}).value || '';
   if(liabilityVal){
     nvRowsLiability()
@@ -1426,13 +1441,13 @@ function calcularResumen(){
         const name = nvItemLabel(row);
         items.push({ name, down, monthly, warn: false, kind: 'fijo' });
         itemsDetalle.push({
-          name, kind: 'fijo', categoria: row.categoria,
-          down, monthly, warn: false
+          name, kind: 'fijo', fuente: 'monthly_payment BD',
+          categoria: row.categoria, down, monthly, warn: false
         });
       });
   }
 
-  // --- Coberturas marcadas (fijo o porcentaje) ---
+  // --- Coberturas marcadas ---
   document.querySelectorAll('#nvCategoryBlocks .nv-opt:checked').forEach(cb=>{
     const key = cb.dataset.nvKey;
     const row = nvFindRowByKey(key);
@@ -1442,9 +1457,9 @@ function calcularResumen(){
     const isPct = kind === 'pct' || String(row.tipo_precio||'').toLowerCase() === 'porcentaje';
 
     if(isPct){
+      // PD / TI-NOT: % del avalúo + amortización APR 18%
       const input = document.querySelector(`.nv-avaluo[data-nv-key="${CSS.escape(key)}"]`);
       const hint = document.querySelector(`.nv-avaluo-hint[data-nv-hint="${CSS.escape(key)}"]`);
-      // Desmarcado / deshabilitado / vacío / ≤0 → no suma, solo aviso
       const avaluo = nvReadAvaluo(input);
       const calc = nvCalcPorcentaje(row, avaluo);
 
@@ -1468,19 +1483,24 @@ function calcularResumen(){
         porcentaje: calc.pct,
         downPct: calc.downPct,
         cuotas: calc.cuotas,
+        apr: calc.apr,
         primaAnual: calc.primaAnual,
         financiado: calc.financiado,
         down: calc.down,
+        mensualidadLinealSinInteres: calc.monthlyLineal,
+        mensualidadConApr18: calc.monthly,
+        diferenciaInteresMensual: calc.monthly - calc.monthlyLineal,
         monthly: calc.monthly,
         warn: false
       });
     } else {
+      // Cargo / Excess MTC: monthly_payment de BD (financiamiento ya integrado)
       const down = Number(row.down_payment) || 0;
       const monthly = Number(row.monthly_payment) || 0;
       items.push({ name, down, monthly, warn: false, kind: 'fijo' });
       itemsDetalle.push({
-        name, kind: 'fijo', categoria: row.categoria,
-        down, monthly, warn: false
+        name, kind: 'fijo', fuente: 'monthly_payment BD',
+        categoria: row.categoria, down, monthly, warn: false
       });
     }
   });
@@ -1499,7 +1519,6 @@ function calcularResumen(){
   let totalDown = 0;
   let totalMonthly = 0;
   const lines = items.map(it=>{
-    // Solo ítems con avalúo válido (o fijos) suman al total
     if(!it.warn){
       totalDown += it.down;
       totalMonthly += it.monthly;
@@ -1532,6 +1551,7 @@ function calcularResumen(){
     itemsActivos: activosQueSuman,
     totalDown: nvMoney(totalDown),
     totalMensual: nvMoney(totalMonthly),
+    nota: 'Liability/Cargo/Excess usan monthly_payment BD; PD/TI-NOT amortizan P al 18% APR',
     itemsDetalle
   });
 }
