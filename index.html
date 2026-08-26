@@ -135,9 +135,10 @@
   #app{display:none;min-height:100vh;}
   #app.app-enter{animation:viewIn .4s var(--ease-out) both;}
   header.top{
-    background:var(--grad);color:#fff;padding:22px 28px;display:flex;align-items:center;
-    justify-content:space-between;flex-wrap:wrap;gap:10px;
+    background:var(--grad);color:#fff;padding:22px 28px;display:flex;flex-direction:column;
+    align-items:stretch;gap:14px;
   }
+  .top-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
   .top-left{display:flex;align-items:center;gap:12px;}
   .top-left .mark{
     width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.18);
@@ -145,6 +146,15 @@
   }
   header.top h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.2px;}
   header.top .sub{font-size:12px;opacity:.85;margin-top:2px;font-family:'Inter',sans-serif;}
+  .module-tabs{display:flex;gap:8px;flex-wrap:wrap;}
+  .module-tabs .toggle-btn{
+    flex:0 1 auto;min-width:160px;padding:9px 16px;
+    background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.85);
+  }
+  .module-tabs .toggle-btn:hover{border-color:rgba(255,255,255,.55);color:#fff;}
+  .module-tabs .toggle-btn.active{
+    border-color:#fff;background:#fff;color:var(--teal);
+  }
   .confidential{
     font-size:11px;background:rgba(255,255,255,.16);padding:6px 12px;border-radius:20px;
     display:flex;align-items:center;gap:6px;transition:background .2s;
@@ -156,6 +166,8 @@
 
   .layout{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start;}
   .layout.view-in{animation:viewIn .28s var(--ease-out) both;}
+  #view-guidelines.view-in,
+  #view-newventures.view-in{animation:viewIn .28s var(--ease-out) both;}
   @media (max-width:900px){.layout{grid-template-columns:1fr;}}
 
   .panel{
@@ -235,6 +247,48 @@
     border-radius:10px;padding:12px 16px;font-size:12.5px;line-height:1.55;margin-bottom:16px;
   }
   .disclaimer-banner b{font-family:'Montserrat Alternates',sans-serif;}
+
+  /* ---------- New Ventures ---------- */
+  .layout.nv-layout{grid-template-columns:1fr 340px;}
+  @media (max-width:900px){.layout.nv-layout{grid-template-columns:1fr;}}
+  .nv-card-body{padding:16px 18px;}
+  .nv-card-title{
+    font-size:14.5px;font-weight:700;color:var(--navy);margin:0 0 4px;
+    font-family:'Montserrat Alternates',sans-serif;
+  }
+  .nv-card-hint{font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.45;}
+  .nv-check-list{display:flex;flex-direction:column;gap:10px;}
+  .nv-check-row{
+    display:flex;align-items:flex-start;gap:10px;padding:10px 12px;
+    border:1.5px solid var(--line);border-radius:10px;background:#fff;
+    transition:border-color .15s, background .15s;
+  }
+  .nv-check-row:hover{border-color:#cfd8e8;}
+  .nv-check-row.is-on{border-color:var(--teal);background:var(--teal-soft);}
+  .nv-check-row input[type=checkbox]{margin-top:3px;flex:none;accent-color:var(--teal);width:16px;height:16px;}
+  .nv-check-meta{flex:1;min-width:0;}
+  .nv-check-label{font-size:13px;font-weight:600;color:var(--ink);display:block;}
+  .nv-check-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .nv-check-row input[type=number]{margin-top:8px;}
+  .nv-check-row input[type=number]:disabled{opacity:.45;background:#f3f5f9;}
+  .nv-avaluo-hint{font-size:11.5px;color:var(--warn);margin-top:6px;}
+  .nv-summary-list{display:flex;flex-direction:column;gap:10px;margin:0 0 14px;}
+  .nv-summary-line{
+    display:flex;justify-content:space-between;gap:12px;align-items:flex-start;
+    padding-bottom:10px;border-bottom:1px solid var(--line);font-size:13px;
+  }
+  .nv-summary-line:last-child{border-bottom:none;padding-bottom:0;}
+  .nv-summary-name{font-weight:600;color:var(--ink);line-height:1.35;}
+  .nv-summary-amounts{text-align:right;flex:none;font-size:12.5px;color:var(--muted);line-height:1.45;}
+  .nv-summary-amounts b{display:block;color:var(--ink);font-weight:700;}
+  .nv-summary-total{
+    margin-top:4px;padding-top:14px;border-top:2px solid var(--navy);
+    display:flex;justify-content:space-between;gap:12px;align-items:flex-start;
+  }
+  .nv-summary-total .label{font-size:13px;font-weight:800;color:var(--navy);font-family:'Montserrat Alternates',sans-serif;}
+  .nv-summary-total .vals{text-align:right;font-size:13px;line-height:1.45;}
+  .nv-summary-total .vals b{display:block;font-size:15px;color:var(--navy);}
+  .nv-summary-empty{font-size:13px;color:var(--muted);line-height:1.5;padding:8px 0 4px;}
 
   .empty-state{
     background:var(--card);border:1px dashed var(--line);border-radius:var(--radius);
@@ -416,20 +470,27 @@
 
 <div id="app">
   <header class="top">
-    <div class="top-left">
-      <div class="mark">IT</div>
-      <div>
-        <h1>Buscador de Guidelines</h1>
-        <div class="sub">Elegibilidad por aseguradora · Equipo Comercial InTrucks</div>
+    <div class="top-bar">
+      <div class="top-left">
+        <div class="mark">IT</div>
+        <div>
+          <h1>InTrucks Guidelines</h1>
+          <div class="sub">Herramientas comerciales · Equipo Comercial InTrucks</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="confidential"><span class="dot"></span> Información confidencial — uso interno</div>
+        <span class="confidential" style="cursor:pointer;" onclick="signOut()">Cerrar sesión</span>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div class="confidential"><span class="dot"></span> Información confidencial — uso interno</div>
-      <span class="confidential" style="cursor:pointer;" onclick="signOut()">Cerrar sesión</span>
-    </div>
+    <nav class="module-tabs" id="moduleTabs" aria-label="Módulos">
+      <div class="toggle-btn active" data-module="guidelines" onclick="switchModule('guidelines')">Buscador de Guidelines</div>
+      <div class="toggle-btn" data-module="newventures" onclick="switchModule('newventures')">New Ventures</div>
+    </nav>
   </header>
 
   <main>
+    <section id="view-guidelines">
     <div class="mode-tabs" id="modeTabs">
       <div class="tab-ind" id="tabInd" aria-hidden="true"></div>
       <div class="mode-tab active" id="tabEstado" onclick="switchMode('estado')">Buscar por Estado</div>
@@ -549,6 +610,9 @@
         </div>
       </section>
     </div>
+    </section>
+
+    <section id="view-newventures" style="display:none;" hidden></section>
   </main>
 
   <footer class="legal">
@@ -676,9 +740,12 @@ document.addEventListener('click', e=>{
 /* ===== dataset: se carga en vivo desde Supabase (tabla "programs") ===== */
 let PROGRAMS = [];
 let MGA_CARRIERS = [];
+let NV_PRICING = [];
 let dataReady = false;
 let programsLoadError = false;
 let mgaLoadError = false;
+let nvPricingLoaded = false;
+let nvPricingLoading = false;
 
 function setSearchEnabled(on){
   const a = document.getElementById('searchBtn');
@@ -784,6 +851,29 @@ function moveTabInd(){
   ind.style.transform = `translateX(${active.offsetLeft}px)`;
 }
 window.addEventListener('resize', moveTabInd);
+let activeModule = 'guidelines';
+
+function switchModule(mod){
+  if(mod !== 'guidelines' && mod !== 'newventures') return;
+  activeModule = mod;
+  const viewGuidelines = document.getElementById('view-guidelines');
+  const viewNewVentures = document.getElementById('view-newventures');
+  const showGuidelines = mod === 'guidelines';
+  viewGuidelines.style.display = showGuidelines ? '' : 'none';
+  viewGuidelines.hidden = !showGuidelines;
+  viewNewVentures.style.display = showGuidelines ? 'none' : '';
+  viewNewVentures.hidden = showGuidelines;
+  document.querySelectorAll('#moduleTabs .toggle-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.module === mod);
+  });
+  const incoming = showGuidelines ? viewGuidelines : viewNewVentures;
+  incoming.classList.remove('view-in');
+  void incoming.offsetWidth;
+  incoming.classList.add('view-in');
+  if(showGuidelines) moveTabInd();
+  else if(!nvPricingLoaded) loadNewVentures();
+}
+
 function switchMode(mode){
   const le = document.getElementById('layoutEstado');
   const lm = document.getElementById('layoutMga');
@@ -877,6 +967,357 @@ async function loadPrograms(){
   }
   programsLoadError = false;
   PROGRAMS = (data||[]).map(normalizeRow);
+}
+
+async function loadNewVentures(){
+  if(nvPricingLoaded || nvPricingLoading) return;
+  nvPricingLoading = true;
+  const view = document.getElementById('view-newventures');
+  view.innerHTML = loaderHtml('Cargando New Ventures…');
+  try {
+    const { data, error } = await sb.from('new_ventures_pricing').select('*');
+    if(error){
+      NV_PRICING = [];
+      nvPricingLoaded = false;
+      view.innerHTML = emptyStateHtml('warn',
+        `No se pudo cargar New Ventures (${escapeHtml(error.message)}).<br>Avisa a tu líder comercial.`);
+      return;
+    }
+    NV_PRICING = data || [];
+    nvPricingLoaded = true;
+    renderNewVenturesUI();
+  } catch (e) {
+    console.error(e);
+    NV_PRICING = [];
+    nvPricingLoaded = false;
+    view.innerHTML = emptyStateHtml('warn',
+      'No se pudo cargar New Ventures. Recarga la página o avisa a tu líder comercial.');
+  } finally {
+    nvPricingLoading = false;
+  }
+}
+
+let nvSelectedRegion = '';
+
+function nvMoney(n){
+  return new Intl.NumberFormat('en-US', { style:'currency', currency:'USD' }).format(Number(n)||0);
+}
+
+function nvRowKey(row){
+  if(row && row.id != null && row.id !== '') return 'id:' + String(row.id);
+  return [
+    'c',
+    row.region||'',
+    row.categoria||'',
+    row.cobertura||'',
+    row.compania||'',
+    row.tipo_precio||'',
+    row.porcentaje ?? '',
+    row.down_payment ?? '',
+    row.monthly_payment ?? '',
+    row.financiamiento_down_pct ?? '',
+    row.financiamiento_cuotas ?? ''
+  ].join('|');
+}
+
+function nvRegions(){
+  const set = new Set();
+  NV_PRICING.forEach(r=>{
+    const reg = String(r.region||'').trim();
+    if(reg) set.add(reg);
+  });
+  return [...set].sort((a,b)=>a.localeCompare(b));
+}
+
+function nvRowsFor(categoria){
+  return NV_PRICING.filter(r =>
+    String(r.region||'').trim() === nvSelectedRegion &&
+    String(r.categoria||'').trim().toUpperCase() === String(categoria).toUpperCase()
+  );
+}
+
+function nvItemLabel(row){
+  const cobertura = String(row.cobertura||'').trim();
+  const compania = String(row.compania||'').trim();
+  const indicacion = String(row.indicacion||'').trim();
+  if(cobertura && compania && cobertura !== compania) return `${cobertura} · ${compania}`;
+  return cobertura || compania || indicacion || 'Cobertura';
+}
+
+function renderNewVenturesUI(){
+  const view = document.getElementById('view-newventures');
+  const regions = nvRegions();
+  if(!regions.length){
+    view.innerHTML = emptyStateHtml('ban', 'No hay precios de New Ventures cargados.');
+    return;
+  }
+  if(!nvSelectedRegion || !regions.includes(nvSelectedRegion)){
+    nvSelectedRegion = regions[0];
+  }
+
+  view.innerHTML = `
+    <div class="layout nv-layout" id="nvLayout">
+      <div class="nv-builder">
+        <div class="field" style="margin-bottom:18px;">
+          <label>Región</label>
+          <div class="toggle-row" id="nvRegionToggles">
+            ${regions.map(r=>`
+              <div class="toggle-btn${r===nvSelectedRegion?' active':''}" data-nv-region="${escapeHtml(r)}">${escapeHtml(r)}</div>
+            `).join('')}
+          </div>
+        </div>
+        <div id="nvCategoryBlocks"></div>
+      </div>
+      <aside class="panel" id="nvSummaryPanel">
+        <h2>Resumen estimado</h2>
+        <p class="hint">Se actualiza al instante con tus selecciones.</p>
+        <div class="disclaimer-banner">
+          Estas son indicaciones de referencia, no cotizaciones en firme. El valor final depende de la suscripción de cada aseguradora.
+        </div>
+        <div id="nvSummary"></div>
+      </aside>
+    </div>
+  `;
+
+  document.querySelectorAll('#nvRegionToggles .toggle-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const next = btn.dataset.nvRegion;
+      if(!next || next === nvSelectedRegion) return;
+      nvSelectedRegion = next;
+      document.querySelectorAll('#nvRegionToggles .toggle-btn').forEach(b=>{
+        b.classList.toggle('active', b.dataset.nvRegion === nvSelectedRegion);
+      });
+      renderNvCategories(); // reconstruye bloques y limpia selecciones previas
+    });
+  });
+
+  renderNvCategories();
+}
+
+function renderNvCategories(){
+  const host = document.getElementById('nvCategoryBlocks');
+  if(!host) return;
+
+  const liability = nvRowsFor('LIABILITY');
+  const cargo = nvRowsFor('CARGO');
+  const excess = nvRowsFor('EXCESS MTC');
+  const endosos = nvRowsFor('ENDOSOS').filter(r =>
+    String(r.tipo_precio||'').toLowerCase() === 'porcentaje'
+  );
+
+  const liabilityCompanies = [...new Set(
+    liability.map(r => String(r.compania||'').trim()).filter(Boolean)
+  )].sort((a,b)=>a.localeCompare(b));
+
+  const checkRows = (rows, name) => {
+    if(!rows.length){
+      return `<div class="nv-summary-empty">Sin opciones de ${escapeHtml(name)} en esta región.</div>`;
+    }
+    return `<div class="nv-check-list">${rows.map((row)=>{
+      const key = nvRowKey(row);
+      const label = nvItemLabel(row);
+      const subParts = [];
+      if(row.compania && String(row.cobertura||'').trim() !== String(row.compania).trim()){
+        subParts.push(String(row.compania).trim());
+      }
+      if(row.indicacion) subParts.push(String(row.indicacion).trim());
+      if(String(row.tipo_precio||'').toLowerCase() === 'fijo'){
+        subParts.push(`Down ${nvMoney(row.down_payment)} · Mensual ${nvMoney(row.monthly_payment)}`);
+      } else if(String(row.tipo_precio||'').toLowerCase() === 'porcentaje' && row.porcentaje != null){
+        subParts.push(`${row.porcentaje}% del avalúo`);
+      }
+      return `
+        <label class="nv-check-row" data-nv-key="${escapeHtml(key)}">
+          <input type="checkbox" class="nv-opt" data-nv-key="${escapeHtml(key)}" data-nv-kind="fixed">
+          <span class="nv-check-meta">
+            <span class="nv-check-label">${escapeHtml(label)}</span>
+            ${subParts.length ? `<span class="nv-check-sub">${escapeHtml(subParts.join(' · '))}</span>` : ''}
+          </span>
+        </label>
+      `;
+    }).join('')}</div>`;
+  };
+
+  const endososRows = () => {
+    if(!endosos.length){
+      return `<div class="nv-summary-empty">Sin endosos porcentuales en esta región.</div>`;
+    }
+    return `<div class="nv-check-list">${endosos.map((row, i)=>{
+      const key = nvRowKey(row);
+      const label = nvItemLabel(row);
+      const pct = row.porcentaje != null ? `${row.porcentaje}%` : '—';
+      const inputId = `nv-avaluo-${i}`;
+      return `
+        <div class="nv-check-row" data-nv-key="${escapeHtml(key)}">
+          <input type="checkbox" class="nv-opt nv-endoso-check" data-nv-key="${escapeHtml(key)}" data-nv-kind="pct" id="nv-chk-${i}">
+          <span class="nv-check-meta">
+            <label class="nv-check-label" for="nv-chk-${i}">${escapeHtml(label)}</label>
+            <span class="nv-check-sub">${escapeHtml(pct)} del avalúo${row.indicacion ? ' · ' + escapeHtml(String(row.indicacion)) : ''}</span>
+            <input type="number" class="nv-avaluo" data-nv-key="${escapeHtml(key)}" id="${inputId}"
+              min="0" step="100" placeholder="Valor del vehículo, ej: 45000" disabled>
+            <div class="nv-avaluo-hint" data-nv-hint="${escapeHtml(key)}" hidden>Ingresa el avalúo</div>
+          </span>
+        </div>
+      `;
+    }).join('')}</div>`;
+  };
+
+  host.innerHTML = `
+    <div class="card">
+      <div class="nv-card-body">
+        <h3 class="nv-card-title">Liability</h3>
+        <p class="nv-card-hint">Elige una compañía para la región seleccionada.</p>
+        <select id="nvLiability">
+          <option value="">Selecciona una compañía…</option>
+          ${liabilityCompanies.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="card">
+      <div class="nv-card-body">
+        <h3 class="nv-card-title">Cargo</h3>
+        <p class="nv-card-hint">Puedes marcar varias coberturas.</p>
+        ${checkRows(cargo, 'Cargo')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="nv-card-body">
+        <h3 class="nv-card-title">Excess MTC</h3>
+        <p class="nv-card-hint">Puedes marcar varias coberturas.</p>
+        ${checkRows(excess, 'Excess MTC')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="nv-card-body">
+        <h3 class="nv-card-title">Endosos</h3>
+        <p class="nv-card-hint">Activa el endoso e ingresa el avalúo del vehículo.</p>
+        ${endososRows()}
+      </div>
+    </div>
+  `;
+
+  const liabilitySel = document.getElementById('nvLiability');
+  if(liabilitySel) liabilitySel.addEventListener('change', calcularResumen);
+
+  host.querySelectorAll('.nv-opt').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const row = cb.closest('.nv-check-row');
+      if(row) row.classList.toggle('is-on', cb.checked);
+      if(cb.classList.contains('nv-endoso-check')){
+        const key = cb.dataset.nvKey;
+        const input = host.querySelector(`.nv-avaluo[data-nv-key="${CSS.escape(key)}"]`);
+        const hint = host.querySelector(`.nv-avaluo-hint[data-nv-hint="${CSS.escape(key)}"]`);
+        if(input){
+          input.disabled = !cb.checked;
+          if(!cb.checked){ input.value = ''; if(hint) hint.hidden = true; }
+        }
+      }
+      calcularResumen();
+    });
+  });
+
+  host.querySelectorAll('.nv-avaluo').forEach(inp=>{
+    inp.addEventListener('input', calcularResumen);
+  });
+
+  calcularResumen();
+}
+
+function nvFindRowByKey(key){
+  return NV_PRICING.find(row => nvRowKey(row) === key) || null;
+}
+
+function nvCalcPorcentaje(row, avaluo){
+  const pct = Number(row.porcentaje);
+  const downPct = Number(row.financiamiento_down_pct);
+  const cuotas = Number(row.financiamiento_cuotas);
+  if(!(avaluo > 0) || !(pct > 0) || !(downPct >= 0) || !(cuotas > 0)) return null;
+  const primaAnual = avaluo * (pct / 100);
+  const down = primaAnual * (downPct / 100);
+  const mensualidad = (primaAnual - down) / cuotas;
+  return { down, monthly: mensualidad, primaAnual };
+}
+
+function calcularResumen(){
+  const box = document.getElementById('nvSummary');
+  if(!box) return;
+
+  const items = [];
+  const liabilityVal = (document.getElementById('nvLiability')||{}).value || '';
+  if(liabilityVal){
+    nvRowsFor('LIABILITY')
+      .filter(r => String(r.compania||'').trim() === liabilityVal)
+      .forEach(row=>{
+        items.push({
+          name: nvItemLabel(row),
+          down: Number(row.down_payment)||0,
+          monthly: Number(row.monthly_payment)||0,
+          warn: false
+        });
+      });
+  }
+
+  document.querySelectorAll('#nvCategoryBlocks .nv-opt:checked').forEach(cb=>{
+    const key = cb.dataset.nvKey;
+    const row = nvFindRowByKey(key);
+    if(!row) return;
+    const kind = cb.dataset.nvKind;
+    if(kind === 'pct' || String(row.tipo_precio||'').toLowerCase() === 'porcentaje'){
+      const input = document.querySelector(`.nv-avaluo[data-nv-key="${CSS.escape(key)}"]`);
+      const hint = document.querySelector(`.nv-avaluo-hint[data-nv-hint="${CSS.escape(key)}"]`);
+      const avaluo = input ? Number(input.value) : 0;
+      const calc = nvCalcPorcentaje(row, avaluo);
+      if(!calc){
+        if(hint) hint.hidden = false;
+        items.push({ name: nvItemLabel(row), down:0, monthly:0, warn:true });
+        return;
+      }
+      if(hint) hint.hidden = true;
+      items.push({ name: nvItemLabel(row), down: calc.down, monthly: calc.monthly, warn:false });
+    } else {
+      items.push({
+        name: nvItemLabel(row),
+        down: Number(row.down_payment)||0,
+        monthly: Number(row.monthly_payment)||0,
+        warn: false
+      });
+    }
+  });
+
+  if(!items.length){
+    box.innerHTML = `<div class="nv-summary-empty">Selecciona coberturas para ver el estimado</div>`;
+    return;
+  }
+
+  let totalDown = 0;
+  let totalMonthly = 0;
+  const lines = items.map(it=>{
+    if(!it.warn){
+      totalDown += it.down;
+      totalMonthly += it.monthly;
+    }
+    return `
+      <div class="nv-summary-line">
+        <div class="nv-summary-name">${escapeHtml(it.name)}${it.warn ? '<div class="nv-avaluo-hint">Ingresa el avalúo</div>' : ''}</div>
+        <div class="nv-summary-amounts">
+          ${it.warn
+            ? '<span>—</span>'
+            : `<b>${nvMoney(it.down)}</b><span>Down</span><b style="margin-top:6px">${nvMoney(it.monthly)}</b><span>Mensual</span>`}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  box.innerHTML = `
+    <div class="nv-summary-list">${lines}</div>
+    <div class="nv-summary-total">
+      <div class="label">Total</div>
+      <div class="vals">
+        <b>${nvMoney(totalDown)}</b><span>Down payment</span>
+        <b style="margin-top:6px">${nvMoney(totalMonthly)}</b><span>Mensualidad</span>
+      </div>
+    </div>
+  `;
 }
 
 /* ===== gate: correo + código OTP vía Supabase, restringido a un dominio ===== */
@@ -1219,7 +1660,7 @@ let _togglesBound = false;
 function bindToggles(){
   if(_togglesBound) return;
   _togglesBound = true;
-  document.querySelectorAll('.toggle-btn').forEach(btn=>{
+  document.querySelectorAll('.toggle-btn[data-group]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const group = btn.dataset.group;
       document.querySelectorAll(`.toggle-btn[data-group="${group}"]`).forEach(b=>b.classList.remove('active'));
@@ -1254,8 +1695,8 @@ function resetFilters(){
   document.getElementById('fExp').value='';
   document.getElementById('fAge').value='';
   document.getElementById('fMvr').value='';
-  document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.toggle-btn[data-val=""]').forEach(b=>b.classList.add('active'));
+  document.querySelectorAll('.toggle-btn[data-group]').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.toggle-btn[data-group][data-val=""]').forEach(b=>b.classList.add('active'));
   document.getElementById('results').innerHTML = emptyStateHtml('search',
     'Selecciona al menos el estado y presiona <b>Buscar opciones</b><br>para ver qué aseguradoras encajan con el riesgo.');
   document.getElementById('resultsCount').textContent='';
