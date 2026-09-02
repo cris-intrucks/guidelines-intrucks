@@ -31,6 +31,7 @@
     --gray-light:#F1F1EF;
     --gray-ink:#6B6B66;
     --grad: linear-gradient(120deg, var(--teal) 0%, var(--navy) 100%);
+    --banner-grad: linear-gradient(120deg, var(--navy) 0%, var(--teal-dark) 100%);
     --radius: 14px;
     --ease-out: cubic-bezier(.22,1,.36,1);
     --ease-spring: cubic-bezier(.34,1.56,.64,1);
@@ -141,8 +142,11 @@
   /* ---------- App ---------- */
   #app{display:none;min-height:100vh;}
   #app.app-enter{animation:viewIn .4s var(--ease-out) both;}
+  .app-chrome{
+    background:var(--banner-grad);color:#fff;
+  }
   header.top{
-    background:var(--grad);color:#fff;padding:22px 28px;display:flex;flex-direction:column;
+    background:transparent;color:#fff;padding:22px 28px;display:flex;flex-direction:column;
     align-items:stretch;gap:14px;
   }
   .top-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
@@ -160,8 +164,10 @@
   }
   .module-tabs .toggle-btn:hover{border-color:rgba(255,255,255,.55);color:#fff;}
   .module-tabs .toggle-btn.active{
-    border-color:#fff;background:#fff;color:var(--teal);
+    border-color:#fff;background:#fff;color:var(--navy);
   }
+  #app.module-accountmap header.top{padding-bottom:8px;gap:12px;}
+  #app.module-accountmap main{padding-top:0;}
   .confidential{
     font-size:11px;background:rgba(255,255,255,.16);padding:6px 12px;border-radius:20px;
     display:flex;align-items:center;gap:6px;transition:background .2s;
@@ -420,10 +426,12 @@
   }
 
   /* ---------- Mapa de Cuentas ---------- */
-  #view-accountmap{margin:-26px -20px 0;}
+  #view-accountmap{margin:0;}
   .am-hero{
-    background:linear-gradient(120deg,var(--navy) 0%, var(--teal-dark) 100%);
-    color:#fff;padding:48px 32px 40px;
+    display:none;background:none;color:#fff;padding:4px 28px 64px;
+  }
+  #app.module-accountmap .am-hero{
+    display:block;animation:viewIn .28s var(--ease-out) both;
   }
   .am-hero-inner{max-width:1100px;margin:0 auto;}
   .am-eyebrow{
@@ -438,7 +446,7 @@
   .am-stats{display:flex;gap:28px;margin-top:28px;flex-wrap:wrap;}
   .am-stat b{font-family:'Montserrat Alternates',sans-serif;font-size:22px;display:block;font-weight:600;}
   .am-stat span{font-size:12.5px;color:rgba(255,255,255,.7);}
-  .am-wrap{max-width:1100px;margin:0 auto;padding:32px 32px 48px;}
+  .am-wrap{max-width:1100px;margin:0 auto;padding:0 32px 48px;}
   .am-classifier{
     background:var(--card);border:1px solid var(--line);border-radius:12px;
     padding:24px;margin:-56px 0 36px;
@@ -536,8 +544,8 @@
   .am-tier-table td:first-child{color:var(--ink);font-weight:600;}
   .am-foot{margin:0;color:var(--gray-ink);font-size:12.5px;}
   @media (max-width:640px){
-    .am-hero{padding:36px 20px 32px;}
-    .am-wrap{padding:24px 20px 40px;}
+    .am-hero{padding:4px 20px 48px;}
+    .am-wrap{padding:0 20px 40px;}
     .am-classifier-grid{grid-template-columns:1fr 1fr;}
     .am-classifier{margin-top:-40px;}
     .am-card-top{flex-wrap:wrap;}
@@ -601,6 +609,7 @@
 </div>
 
 <div id="app">
+  <div class="app-chrome">
   <header class="top">
     <div class="top-bar">
       <div class="top-left">
@@ -621,6 +630,19 @@
       <div class="toggle-btn" data-module="accountmap" onclick="switchModule('accountmap')">Mapa de Cuentas</div>
     </nav>
   </header>
+  <div class="am-hero" id="amHero">
+    <div class="am-hero-inner">
+      <p class="am-eyebrow">Motor de Perfilamiento · Fase 1</p>
+      <h2>Mapa de Cuentas y Estrategia de Contacto</h2>
+      <p>Compañías objetivo de tu portafolio, cruzadas en tiempo real con el guion de llamada que corresponde a cada una — 7 estados, enero–junio 2026.</p>
+      <div class="am-stats">
+        <div class="am-stat"><b>65,784</b><span>pólizas de mercado analizadas</span></div>
+        <div class="am-stat"><b>11,944</b><span>cruces ganado/perdido</span></div>
+        <div class="am-stat"><b>51</b><span>aseguradoras de portafolio</span></div>
+      </div>
+    </div>
+  </div>
+  </div>
 
   <main>
     <section id="view-guidelines">
@@ -748,18 +770,6 @@
     <section id="view-newventures" style="display:none;" hidden></section>
 
     <section id="view-accountmap" style="display:none;" hidden>
-      <div class="am-hero">
-        <div class="am-hero-inner">
-          <p class="am-eyebrow">Motor de Perfilamiento · Fase 1</p>
-          <h2>Mapa de Cuentas y Estrategia de Contacto</h2>
-          <p>Compañías objetivo de tu portafolio, cruzadas en tiempo real con el guion de llamada que corresponde a cada una — 7 estados, enero–junio 2026.</p>
-          <div class="am-stats">
-            <div class="am-stat"><b>65,784</b><span>pólizas de mercado analizadas</span></div>
-            <div class="am-stat"><b>11,944</b><span>cruces ganado/perdido</span></div>
-            <div class="am-stat"><b>51</b><span>aseguradoras de portafolio</span></div>
-          </div>
-        </div>
-      </div>
       <div class="am-wrap">
         <div class="am-classifier">
           <h3>Clasificador rápido de riesgo</h3>
@@ -1059,6 +1069,7 @@ function switchModule(mod){
   document.querySelectorAll('#moduleTabs .toggle-btn').forEach(btn=>{
     btn.classList.toggle('active', btn.dataset.module === mod);
   });
+  document.getElementById('app').classList.toggle('module-accountmap', mod === 'accountmap');
   const incoming = views[mod];
   incoming.classList.remove('view-in');
   void incoming.offsetWidth;
