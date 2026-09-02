@@ -23,6 +23,13 @@
     --warn-bg:#fdf3dc;
     --bad:#c23b3b;
     --bad-bg:#fbe9e9;
+    --teal-dark:#2C7A65;
+    --navy-light:#EAF0FA;
+    --teal-light:#E7F4EF;
+    --amber:#B8863B;
+    --amber-light:#FBF2E3;
+    --gray-light:#F1F1EF;
+    --gray-ink:#6B6B66;
     --grad: linear-gradient(120deg, var(--teal) 0%, var(--navy) 100%);
     --radius: 14px;
     --ease-out: cubic-bezier(.22,1,.36,1);
@@ -167,7 +174,8 @@
   .layout{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start;}
   .layout.view-in{animation:viewIn .28s var(--ease-out) both;}
   #view-guidelines.view-in,
-  #view-newventures.view-in{animation:viewIn .28s var(--ease-out) both;}
+  #view-newventures.view-in,
+  #view-accountmap.view-in{animation:viewIn .28s var(--ease-out) both;}
   @media (max-width:900px){.layout{grid-template-columns:1fr;}}
 
   .panel{
@@ -411,6 +419,130 @@
     line-height:1.6;text-align:center;
   }
 
+  /* ---------- Mapa de Cuentas ---------- */
+  #view-accountmap{margin:-26px -20px 0;}
+  .am-hero{
+    background:linear-gradient(120deg,var(--navy) 0%, var(--teal-dark) 100%);
+    color:#fff;padding:48px 32px 40px;
+  }
+  .am-hero-inner{max-width:1100px;margin:0 auto;}
+  .am-eyebrow{
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:rgba(255,255,255,.75);font-weight:600;margin:0 0 10px;
+  }
+  .am-hero h2{
+    font-family:'Montserrat Alternates',sans-serif;font-weight:700;
+    font-size:clamp(26px,4vw,38px);margin:0 0 10px;letter-spacing:-.01em;color:#fff;
+  }
+  .am-hero p{margin:0;max-width:620px;color:rgba(255,255,255,.88);font-size:15.5px;}
+  .am-stats{display:flex;gap:28px;margin-top:28px;flex-wrap:wrap;}
+  .am-stat b{font-family:'Montserrat Alternates',sans-serif;font-size:22px;display:block;font-weight:600;}
+  .am-stat span{font-size:12.5px;color:rgba(255,255,255,.7);}
+  .am-wrap{max-width:1100px;margin:0 auto;padding:32px 32px 48px;}
+  .am-classifier{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:24px;margin:-56px 0 36px;
+    box-shadow:0 1px 2px rgba(18,23,43,.04), 0 8px 24px rgba(18,23,43,.06);
+    position:relative;z-index:2;
+  }
+  .am-classifier h3{font-family:'Montserrat Alternates',sans-serif;font-size:18px;margin:0 0 4px;color:var(--ink);}
+  .am-classifier .am-sub{color:var(--muted);font-size:13.5px;margin:0 0 18px;}
+  .am-classifier-grid{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:14px;align-items:end;}
+  .am-field{margin-bottom:0;}
+  .am-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500;}
+  #view-accountmap .am-field input[type=number]{
+    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;
+    font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);background:#fff;
+    box-shadow:none;
+  }
+  #view-accountmap .am-field input[type=number]:focus{
+    outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal);box-shadow:none;
+  }
+  .am-btn{
+    background:var(--navy);color:#fff;border:none;border-radius:8px;
+    padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;
+    white-space:nowrap;
+  }
+  .am-btn:hover{background:var(--teal-dark);}
+  .am-btn:focus-visible{outline:2px solid var(--navy);outline-offset:2px;}
+  .am-result{
+    margin-top:18px;padding:16px;border-radius:10px;display:none;
+    border-left:4px solid var(--teal);background:var(--teal-light);
+  }
+  .am-result.is-visible{display:block;}
+  .am-result.alto{border-left-color:var(--amber);background:var(--amber-light);}
+  .am-result .am-tier{font-weight:700;font-family:'Montserrat Alternates',sans-serif;margin-bottom:6px;display:block;}
+  .am-result p{margin:0;font-size:14px;color:var(--ink);}
+  .am-section{margin-bottom:40px;}
+  .am-section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;gap:16px;flex-wrap:wrap;}
+  .am-section-head h3{font-family:'Montserrat Alternates',sans-serif;font-size:19px;margin:0;color:var(--ink);}
+  .am-count{font-size:13px;color:var(--muted);}
+  .am-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+  .am-chip{
+    padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;
+    font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);transition:all .12s;
+    font-family:'Inter',sans-serif;
+  }
+  .am-chip:hover{border-color:var(--teal);}
+  .am-chip.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .am-search{
+    flex:1;min-width:200px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);
+    font-size:13px;font-family:'Inter',sans-serif;color:var(--ink);background:#fff;
+  }
+  .am-search:focus{outline:none;border-color:var(--teal);}
+  .am-card{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;margin-bottom:10px;cursor:pointer;
+    transition:box-shadow .15s, border-color .15s;
+  }
+  .am-card:hover{box-shadow:0 1px 2px rgba(18,23,43,.04), 0 8px 24px rgba(18,23,43,.06);border-color:#D8DBE3;}
+  .am-card-top{display:flex;align-items:center;justify-content:space-between;gap:16px;}
+  .am-card-name{font-weight:600;font-size:15px;color:var(--ink);}
+  .am-card-meta{display:flex;align-items:center;gap:14px;flex-shrink:0;}
+  .am-metric{font-size:13.5px;color:var(--muted);white-space:nowrap;}
+  .am-metric b{color:var(--ink);font-weight:600;}
+  .am-badge{
+    font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;
+    text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;
+  }
+  .am-badge.crecimiento{background:var(--teal-light);color:var(--teal-dark);}
+  .am-badge.interno{background:var(--navy-light);color:var(--navy);}
+  .am-badge.externo{background:var(--amber-light);color:var(--amber);}
+  .am-badge.aor{background:var(--navy);color:#fff;}
+  .am-badge.evitar{background:var(--gray-light);color:var(--gray-ink);}
+  .am-chevron{color:var(--muted);font-size:13px;transition:transform .15s;flex-shrink:0;}
+  .am-card.open .am-chevron{transform:rotate(180deg);}
+  .am-card-detail{
+    display:grid;grid-template-rows:0fr;
+    transition:grid-template-rows .2s ease;
+  }
+  .am-card.open .am-card-detail{grid-template-rows:1fr;}
+  .am-card-detail-inner{overflow:hidden;min-height:0;}
+  .am-card.open .am-card-detail-inner{padding-top:14px;}
+  .am-detail-text{margin:0 0 10px;font-size:13.5px;color:var(--muted);}
+  .am-script{
+    background:#FBFBFA;border-left:3px solid var(--teal);border-radius:0 8px 8px 0;
+    padding:12px 16px;font-size:13.5px;color:var(--muted);
+  }
+  .am-script .am-obj{font-weight:600;color:var(--ink);display:block;margin-bottom:6px;font-size:13px;}
+  .am-script .am-line{font-style:italic;color:var(--ink);display:block;margin:8px 0;line-height:1.55;}
+  .am-script .am-note{font-size:12.5px;color:var(--gray-ink);margin-top:8px;display:block;}
+  .am-tier-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13.5px;}
+  .am-tier-table th{
+    background:var(--navy);color:#fff;text-align:left;padding:10px 12px;font-weight:600;font-size:12.5px;
+  }
+  .am-tier-table td{padding:10px 12px;border-bottom:1px solid var(--line);color:var(--muted);}
+  .am-tier-table tr:nth-child(even) td{background:#FAFAF9;}
+  .am-tier-table td:first-child{color:var(--ink);font-weight:600;}
+  .am-foot{margin:0;color:var(--gray-ink);font-size:12.5px;}
+  @media (max-width:640px){
+    .am-hero{padding:36px 20px 32px;}
+    .am-wrap{padding:24px 20px 40px;}
+    .am-classifier-grid{grid-template-columns:1fr 1fr;}
+    .am-classifier{margin-top:-40px;}
+    .am-card-top{flex-wrap:wrap;}
+  }
+
   /* ---------- accessibility: reduced motion ---------- */
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{
@@ -486,6 +618,7 @@
     <nav class="module-tabs" id="moduleTabs" aria-label="Módulos">
       <div class="toggle-btn active" data-module="guidelines" onclick="switchModule('guidelines')">Buscador de Guidelines</div>
       <div class="toggle-btn" data-module="newventures" onclick="switchModule('newventures')">New Ventures</div>
+      <div class="toggle-btn" data-module="accountmap" onclick="switchModule('accountmap')">Mapa de Cuentas</div>
     </nav>
   </header>
 
@@ -613,6 +746,62 @@
     </section>
 
     <section id="view-newventures" style="display:none;" hidden></section>
+
+    <section id="view-accountmap" style="display:none;" hidden>
+      <div class="am-hero">
+        <div class="am-hero-inner">
+          <p class="am-eyebrow">Motor de Perfilamiento · Fase 1</p>
+          <h2>Mapa de Cuentas y Estrategia de Contacto</h2>
+          <p>Compañías objetivo de tu portafolio, cruzadas en tiempo real con el guion de llamada que corresponde a cada una — 7 estados, enero–junio 2026.</p>
+          <div class="am-stats">
+            <div class="am-stat"><b>65,784</b><span>pólizas de mercado analizadas</span></div>
+            <div class="am-stat"><b>11,944</b><span>cruces ganado/perdido</span></div>
+            <div class="am-stat"><b>51</b><span>aseguradoras de portafolio</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="am-wrap">
+        <div class="am-classifier">
+          <h3>Clasificador rápido de riesgo</h3>
+          <p class="am-sub">Ingresa el perfil del lead para saber qué ángulo de venta usar — el nivel se calcula sobre alertas y violaciones OOS, los indicadores de mayor peso.</p>
+          <div class="am-classifier-grid">
+            <div class="am-field"><label for="am-pu">Unidades de poder</label><input type="number" id="am-pu" min="0" placeholder="ej. 2"></div>
+            <div class="am-field"><label for="am-anios">Años en el negocio</label><input type="number" id="am-anios" min="0" step="0.5" placeholder="ej. 3"></div>
+            <div class="am-field"><label for="am-alerts">Alertas</label><input type="number" id="am-alerts" min="0" placeholder="ej. 0"></div>
+            <div class="am-field"><label for="am-oos">Violaciones OOS</label><input type="number" id="am-oos" min="0" placeholder="ej. 1"></div>
+            <button type="button" class="am-btn" id="am-classify-btn">Calcular perfil</button>
+          </div>
+          <div id="am-classifier-result" class="am-result" hidden></div>
+        </div>
+
+        <section class="am-section">
+          <div class="am-section-head">
+            <h3>Compañías objetivo</h3>
+            <span class="am-count" id="am-result-count"></span>
+          </div>
+          <div class="am-filters" id="am-filters">
+            <input type="text" class="am-search" id="am-search" placeholder="Buscar aseguradora..." aria-label="Buscar aseguradora">
+          </div>
+          <div id="am-cards"></div>
+        </section>
+
+        <section class="am-section">
+          <div class="am-section-head"><h3>Perfiles de riesgo — referencia</h3></div>
+          <table class="am-tier-table">
+            <thead><tr><th>Variable</th><th>Bajo</th><th>Medio</th><th>Alto</th></tr></thead>
+            <tbody>
+              <tr><td>Unidades de poder</td><td>1–2 (66% del mercado)</td><td>3–7</td><td>8+ (10% del mercado)</td></tr>
+              <tr><td>Antigüedad del negocio</td><td>0–3.5 años</td><td>3.5–8.5 años</td><td>8.5+ años</td></tr>
+              <tr><td>Score de seguridad (Est. ISS)</td><td>0–44 (mejor perfil)</td><td>45–66</td><td>67–99 (mayor riesgo)</td></tr>
+              <tr><td>Alertas</td><td>0 (87% del mercado)</td><td>1 (9%)</td><td>2+ (4%)</td></tr>
+              <tr><td>Violaciones OOS</td><td>0 (mediana)</td><td>1–3</td><td>4+ (top 5–10%)</td></tr>
+              <tr><td>Crashes</td><td>0 (84% del mercado)</td><td>1–2 (13.5%)</td><td>3+ (2.5%)</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <p class="am-foot">Datos de mercado enero–junio 2026, 7 estados (FL, TX, CA, PA, GA, NC, NJ). Uso interno — Motor de Perfilamiento.</p>
+      </div>
+    </section>
   </main>
 
   <footer class="legal">
@@ -621,6 +810,7 @@
   </footer>
 </div>
 
+<script src="account-map-data.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ===== motion helpers (accesibilidad primero) ===== */
@@ -854,24 +1044,27 @@ window.addEventListener('resize', moveTabInd);
 let activeModule = 'guidelines';
 
 function switchModule(mod){
-  if(mod !== 'guidelines' && mod !== 'newventures') return;
+  const views = {
+    guidelines: document.getElementById('view-guidelines'),
+    newventures: document.getElementById('view-newventures'),
+    accountmap: document.getElementById('view-accountmap')
+  };
+  if(!views[mod]) return;
   activeModule = mod;
-  const viewGuidelines = document.getElementById('view-guidelines');
-  const viewNewVentures = document.getElementById('view-newventures');
-  const showGuidelines = mod === 'guidelines';
-  viewGuidelines.style.display = showGuidelines ? '' : 'none';
-  viewGuidelines.hidden = !showGuidelines;
-  viewNewVentures.style.display = showGuidelines ? 'none' : '';
-  viewNewVentures.hidden = showGuidelines;
+  Object.keys(views).forEach(key=>{
+    const show = key === mod;
+    views[key].style.display = show ? '' : 'none';
+    views[key].hidden = !show;
+  });
   document.querySelectorAll('#moduleTabs .toggle-btn').forEach(btn=>{
     btn.classList.toggle('active', btn.dataset.module === mod);
   });
-  const incoming = showGuidelines ? viewGuidelines : viewNewVentures;
+  const incoming = views[mod];
   incoming.classList.remove('view-in');
   void incoming.offsetWidth;
   incoming.classList.add('view-in');
-  if(showGuidelines) moveTabInd();
-  else if(!nvPricingLoaded) loadNewVentures();
+  if(mod === 'guidelines') moveTabInd();
+  else if(mod === 'newventures' && !nvPricingLoaded) loadNewVentures();
 }
 
 function switchMode(mode){
@@ -2119,6 +2312,187 @@ function escapeHtml(s){
   if(s==null) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+/* ===== Mapa de Cuentas: estado (useState) + lista derivada (useMemo) ===== */
+const amState = {
+  filter: 'todas',
+  query: '',
+  openId: null,
+  classifier: { pu:'', anios:'', alerts:'', oos:'', result:null }
+};
+
+/**
+ * Store ligero equivalente a un slice de Zustand.
+ * El buscador de guidelines puede leer InTrucksAccountMap.getClassifier()
+ * para prefijar años / alertas cuando el clasificador ya corrió.
+ *
+ * Migración sugerida a Zustand:
+ *   export const useAccountMapStore = create((set) => ({
+ *     classifier: null,
+ *     setClassifier: (result) => set({ classifier: result }),
+ *   }));
+ * En GuidelinesSearch: const classifier = useAccountMapStore(s => s.classifier);
+ * if (classifier?.anios != null) setYears(classifier.anios);
+ */
+window.InTrucksAccountMap = {
+  getState(){ return amState; },
+  getClassifier(){ return amState.classifier.result; }
+};
+
+function amFilteredCompanies(){
+  const q = amState.query.trim().toLowerCase();
+  const filter = amState.filter;
+  return (window.ACCOUNT_MAP_COMPANIES || []).filter(c=>{
+    const matchCat = filter === 'todas' || c.cat === filter;
+    const matchQ = !q || c.name.toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+}
+
+function amCatLabel(cat){
+  const labels = window.ACCOUNT_MAP_CAT_LABELS || {};
+  return labels[cat] || cat;
+}
+
+function amRenderCards(){
+  const list = amFilteredCompanies();
+  const countEl = document.getElementById('am-result-count');
+  const container = document.getElementById('am-cards');
+  if(!countEl || !container) return;
+  countEl.textContent = list.length + (list.length === 1 ? ' resultado' : ' resultados');
+  const scripts = window.ACCOUNT_MAP_SCRIPTS || {};
+  container.innerHTML = list.map(c=>{
+    const script = scripts[c.cat] || { label:'', objetivo:'', linea:'', nota:'' };
+    const open = amState.openId === c.id ? ' open' : '';
+    const detail = c.detail
+      ? `<p class="am-detail-text">${escapeHtml(c.detail)}</p>`
+      : '';
+    return `
+      <div class="am-card${open}" data-id="${c.id}" role="button" tabindex="0" aria-expanded="${amState.openId === c.id ? 'true' : 'false'}">
+        <div class="am-card-top">
+          <div><span class="am-card-name">${escapeHtml(c.name)}</span></div>
+          <div class="am-card-meta">
+            <span class="am-metric"><b>${escapeHtml(c.metric)}</b></span>
+            <span class="am-badge ${escapeHtml(c.cat)}">${escapeHtml(amCatLabel(c.cat))}</span>
+            <span class="am-chevron" aria-hidden="true">▾</span>
+          </div>
+        </div>
+        <div class="am-card-detail">
+          <div class="am-card-detail-inner">
+            ${detail}
+            <div class="am-script">
+              <span class="am-obj">${escapeHtml(script.label)} — ${escapeHtml(script.objetivo)}</span>
+              <span class="am-line">${escapeHtml(script.linea)}</span>
+              <span class="am-note">${escapeHtml(script.nota)}</span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function amSetFilter(cat){
+  amState.filter = cat;
+  document.querySelectorAll('#am-filters .am-chip').forEach(chip=>{
+    chip.classList.toggle('active', chip.dataset.cat === cat);
+  });
+  amRenderCards();
+}
+
+function amToggleCard(id){
+  amState.openId = amState.openId === id ? null : id;
+  document.querySelectorAll('#am-cards .am-card').forEach(card=>{
+    const isOpen = Number(card.dataset.id) === amState.openId;
+    card.classList.toggle('open', isOpen);
+    card.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+}
+
+function amTier(value, lowMax, medMax){
+  if(value <= lowMax) return 'bajo';
+  if(value <= medMax) return 'medio';
+  return 'alto';
+}
+
+function amClasificar(){
+  const pu = parseFloat(document.getElementById('am-pu').value) || 0;
+  const anios = parseFloat(document.getElementById('am-anios').value) || 0;
+  const alerts = parseFloat(document.getElementById('am-alerts').value) || 0;
+  const oos = parseFloat(document.getElementById('am-oos').value) || 0;
+
+  const tAlerts = alerts <= 0 ? 'bajo' : alerts === 1 ? 'medio' : 'alto';
+  const tOos = oos <= 0 ? 'bajo' : oos <= 3 ? 'medio' : 'alto';
+  const orden = { bajo:0, medio:1, alto:2 };
+  const riesgo = orden[tAlerts] >= orden[tOos] ? tAlerts : tOos;
+  const tPu = amTier(pu, 2, 7);
+  const tAnios = amTier(anios, 3.5, 8.5);
+
+  const angulos = {
+    bajo: 'Servicio, relación e idioma — NO uses precio como argumento principal. Este perfil es el que Progressive persigue con más agresividad en precio; compite en otra cosa.',
+    medio: 'Balance: “tenemos aseguradoras que sí entienden su tipo de operación” — zona donde tu portafolio de especialidad tiene ventaja real de apetito de riesgo.',
+    alto: 'Experiencia y especialización explícita, no ocultes el historial: “Sé que su historial tiene algunas alertas — no es un problema para nosotros, trabajamos específicamente con aseguradoras que entienden ese tipo de operación.”'
+  };
+
+  const result = {
+    riesgo, tPu, tAnios, pu, anios, alerts, oos,
+    texto: angulos[riesgo]
+  };
+  amState.classifier = { pu, anios, alerts, oos, result };
+  window.InTrucksAccountMap.classifier = result;
+
+  const res = document.getElementById('am-classifier-result');
+  res.hidden = false;
+  res.className = 'am-result is-visible' + (riesgo === 'alto' ? ' alto' : '');
+  res.innerHTML = `
+    <span class="am-tier">Riesgo ${escapeHtml(riesgo.toUpperCase())} · Flota ${escapeHtml(tPu)} · Antigüedad ${escapeHtml(tAnios)}</span>
+    <p>${escapeHtml(result.texto)}</p>
+  `;
+}
+
+function initAccountMap(){
+  const root = document.getElementById('view-accountmap');
+  const filters = document.getElementById('am-filters');
+  if(!root || !filters || root.dataset.ready) return;
+  root.dataset.ready = '1';
+
+  (window.ACCOUNT_MAP_FILTERS || []).forEach(f=>{
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'am-chip' + (f.id === amState.filter ? ' active' : '');
+    btn.dataset.cat = f.id;
+    btn.textContent = f.label;
+    btn.addEventListener('click', ()=>amSetFilter(f.id));
+    filters.appendChild(btn);
+  });
+
+  document.getElementById('am-search').addEventListener('input', e=>{
+    amState.query = e.target.value;
+    amRenderCards();
+  });
+  document.getElementById('am-classify-btn').addEventListener('click', amClasificar);
+  ['am-pu','am-anios','am-alerts','am-oos'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('keydown', e=>{ if(e.key === 'Enter') amClasificar(); });
+  });
+
+  document.getElementById('am-cards').addEventListener('click', e=>{
+    const card = e.target.closest('.am-card');
+    if(!card) return;
+    amToggleCard(Number(card.dataset.id));
+  });
+  document.getElementById('am-cards').addEventListener('keydown', e=>{
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('.am-card');
+    if(!card) return;
+    e.preventDefault();
+    amToggleCard(Number(card.dataset.id));
+  });
+
+  amRenderCards();
+}
+
+initAccountMap();
 
 </script>
 </body>
