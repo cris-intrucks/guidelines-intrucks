@@ -3,7 +3,60 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>InTrucks · Buscador de Guidelines</title>
+<script>
+/* Hard refresh: al publicar, sube el número en version.json (mismo valor). */
+(function(){
+  var KEY = 'intrucks_app_version';
+  var CHECK_MS = 30 * 60 * 1000;
+
+  function bustAndReload(version){
+    if(sessionStorage.getItem('intrucks_reloaded') === version) return;
+    sessionStorage.setItem('intrucks_reloaded', version);
+    localStorage.setItem(KEY, version);
+    var go = function(){
+      var url = new URL(window.location.href);
+      url.searchParams.set('_v', version);
+      window.location.replace(url.toString());
+    };
+    var jobs = [];
+    if(window.caches && caches.keys){
+      jobs.push(caches.keys().then(function(keys){
+        return Promise.all(keys.map(function(k){ return caches.delete(k); }));
+      }));
+    }
+    if(navigator.serviceWorker && navigator.serviceWorker.getRegistrations){
+      jobs.push(navigator.serviceWorker.getRegistrations().then(function(regs){
+        return Promise.all(regs.map(function(r){ return r.unregister(); }));
+      }));
+    }
+    Promise.all(jobs).then(go, go);
+  }
+
+  function checkAppVersion(){
+    if(location.protocol === 'file:') return;
+    fetch('version.json?t=' + Date.now(), { cache: 'no-store' })
+      .then(function(res){ return res.ok ? res.json() : null; })
+      .then(function(data){
+        if(!data || !data.version) return;
+        var remote = String(data.version);
+        var local = localStorage.getItem(KEY);
+        if(!local){ localStorage.setItem(KEY, remote); return; }
+        if(local !== remote) bustAndReload(remote);
+      })
+      .catch(function(){});
+  }
+
+  checkAppVersion();
+  setInterval(checkAppVersion, CHECK_MS);
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible') checkAppVersion();
+  });
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat+Alternates:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -820,7 +873,7 @@
   </footer>
 </div>
 
-<script src="account-map-data.js"></script>
+<script src="account-map-data.js?v=2026-09-15.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ===== motion helpers (accesibilidad primero) ===== */
