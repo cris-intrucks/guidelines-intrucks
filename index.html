@@ -234,7 +234,8 @@
   .layout.view-in{animation:viewIn .28s var(--ease-out) both;}
   #view-guidelines.view-in,
   #view-newventures.view-in,
-  #view-accountmap.view-in{animation:viewIn .28s var(--ease-out) both;}
+  #view-accountmap.view-in,
+  #view-usage.view-in{animation:viewIn .28s var(--ease-out) both;}
   @media (max-width:900px){.layout{grid-template-columns:1fr;}}
 
   .panel{
@@ -596,6 +597,24 @@
   .am-tier-table tr:nth-child(even) td{background:#FAFAF9;}
   .am-tier-table td:first-child{color:var(--ink);font-weight:600;}
   .am-foot{margin:0;color:var(--gray-ink);font-size:12.5px;}
+
+  /* ---------- Uso semanal ---------- */
+  .usage-wrap{max-width:1100px;margin:0 auto;}
+  .usage-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
+  .usage-head h2{margin:0;font-size:19px;color:var(--navy);}
+  .usage-head p{margin:4px 0 0;font-size:13px;color:var(--muted);}
+  .usage-stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;}
+  .usage-stat{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;min-width:120px;
+  }
+  .usage-stat b{display:block;font-family:'Montserrat Alternates',sans-serif;font-size:22px;color:var(--navy);}
+  .usage-stat span{font-size:12px;color:var(--muted);}
+  .usage-copy{
+    background:var(--navy);color:#fff;border:none;border-radius:8px;
+    padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;
+  }
+  .usage-copy:hover{background:var(--teal-dark);}
   @media (max-width:640px){
     .am-hero{padding:4px 20px 48px;}
     .am-wrap{padding:0 20px 40px;}
@@ -681,6 +700,7 @@
       <div class="toggle-btn active" data-module="guidelines" onclick="switchModule('guidelines')">Buscador de Guidelines</div>
       <div class="toggle-btn" data-module="newventures" onclick="switchModule('newventures')">New Ventures</div>
       <div class="toggle-btn" data-module="accountmap" onclick="switchModule('accountmap')">Mapa de Cuentas</div>
+      <div class="toggle-btn" data-module="usage" onclick="switchModule('usage')">Uso semanal</div>
     </nav>
   </header>
   <div class="am-hero" id="amHero">
@@ -865,6 +885,20 @@
         <p class="am-foot">Datos de mercado enero–junio 2026, 7 estados (FL, TX, CA, PA, GA, NC, NJ). Uso interno — Motor de Perfilamiento.</p>
       </div>
     </section>
+
+    <section id="view-usage" style="display:none;" hidden>
+      <div class="usage-wrap">
+        <div class="usage-head">
+          <div>
+            <h2>Uso de la herramienta · últimos 7 días</h2>
+            <p>Por usuario, tipo de consulta y frecuencia. Solo correos @intruckscorp.com.</p>
+          </div>
+          <button type="button" class="usage-copy" id="usageCopyBtn">Copiar resumen para Slack</button>
+        </div>
+        <div class="usage-stats" id="usageStats"></div>
+        <div id="usageReport"></div>
+      </div>
+    </section>
   </main>
 
   <footer class="legal">
@@ -873,7 +907,7 @@
   </footer>
 </div>
 
-<script src="account-map-data.js?v=2026-09-15.1"></script>
+<script src="account-map-data.js?v=2026-09-15.2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ===== motion helpers (accesibilidad primero) ===== */
@@ -1110,7 +1144,8 @@ function switchModule(mod){
   const views = {
     guidelines: document.getElementById('view-guidelines'),
     newventures: document.getElementById('view-newventures'),
-    accountmap: document.getElementById('view-accountmap')
+    accountmap: document.getElementById('view-accountmap'),
+    usage: document.getElementById('view-usage')
   };
   if(!views[mod]) return;
   activeModule = mod;
@@ -1129,6 +1164,8 @@ function switchModule(mod){
   incoming.classList.add('view-in');
   if(mod === 'guidelines') moveTabInd();
   else if(mod === 'newventures' && !nvPricingLoaded) loadNewVentures();
+  else if(mod === 'usage') loadUsageReport();
+  if(mod !== 'usage') track('module_view', mod, { label: MODULE_LABELS[mod] || mod });
 }
 
 function switchMode(mode){
@@ -1143,6 +1180,7 @@ function switchMode(mode){
   incoming.classList.remove('view-in');
   void incoming.offsetWidth;
   incoming.classList.add('view-in');
+  track('module_view', 'guidelines', { mode });
 }
 function runMgaSearch(){
   const mga = document.getElementById('mgaSelect').value;
@@ -1168,6 +1206,7 @@ function runMgaSearch(){
 
   let rows = MGA_CARRIERS.filter(r => String(r.mga||'').trim() === mga);
   if(state) rows = rows.filter(r => coversState(r.estados, state));
+  track('mga_search', 'guidelines', { mga, state: state || null, results: rows.length });
 
   if(rows.length===0){
     countSpan.textContent = `0 carrier(s) bajo ${mga}`;
@@ -1243,6 +1282,7 @@ async function loadNewVentures(){
     NV_PRICING = data || [];
     nvPricingLoaded = true;
     renderNewVenturesUI();
+    track('nv_open', 'newventures', { rows: NV_PRICING.length });
   } catch (e) {
     console.error(e);
     NV_PRICING = [];
@@ -1823,6 +1863,202 @@ const sb = window.supabase
   : null;
 let pendingEmail = "";
 let gateBusy = false;
+let sessionEmail = "";
+let lastUsageDigest = "";
+
+const USAGE_LABELS = {
+  session_start: 'Inicio de sesión',
+  module_view: 'Cambio de módulo',
+  guidelines_search: 'Búsqueda por estado',
+  mga_search: 'Búsqueda por MGA',
+  nv_open: 'New Ventures',
+  account_map_classify: 'Clasificador de riesgo'
+};
+const MODULE_LABELS = {
+  guidelines: 'Guidelines',
+  newventures: 'New Ventures',
+  accountmap: 'Mapa de Cuentas',
+  usage: 'Uso semanal'
+};
+
+function track(eventType, moduleName, detail){
+  if(!sb || !sessionEmail) return;
+  sb.from('usage_events').insert({
+    user_email: sessionEmail,
+    event_type: eventType,
+    module: moduleName || 'guidelines',
+    detail: detail || {}
+  }).then(function(res){
+    if(res.error) console.warn('usage_events', res.error.message);
+  }).catch(function(){});
+}
+
+function trackSessionStart(){
+  if(!sessionEmail) return;
+  const key = 'usage_session_' + sessionEmail + '_' + new Date().toISOString().slice(0,10);
+  if(sessionStorage.getItem(key)) return;
+  sessionStorage.setItem(key, '1');
+  track('session_start', activeModule || 'guidelines', {});
+}
+
+async function refreshSessionEmail(){
+  if(!sb){ sessionEmail = ''; return ''; }
+  const { data } = await sb.auth.getSession();
+  sessionEmail = ((data.session && data.session.user && data.session.user.email) || '').toLowerCase();
+  return sessionEmail;
+}
+
+function usageShortEmail(email){
+  return String(email||'').replace(/@intruckscorp\.com$/i, '');
+}
+
+function buildUsageDigest(rows){
+  const users = {};
+  const types = {};
+  const days = {};
+  (rows||[]).forEach(r=>{
+    const email = r.user_email || '—';
+    if(!users[email]) users[email] = { email, sesiones:0, guidelines:0, mga:0, nv:0, clasificador:0, eventos:0, days:new Set() };
+    const u = users[email];
+    u.eventos++;
+    if(r.created_at) u.days.add(String(r.created_at).slice(0,10));
+    if(r.event_type === 'session_start') u.sesiones++;
+    if(r.event_type === 'guidelines_search') u.guidelines++;
+    if(r.event_type === 'mga_search') u.mga++;
+    if(r.event_type === 'nv_open') u.nv++;
+    if(r.event_type === 'account_map_classify') u.clasificador++;
+    const tk = r.event_type || 'otro';
+    types[tk] = (types[tk]||0) + 1;
+    if(r.created_at){
+      const d = String(r.created_at).slice(0,10);
+      days[d] = (days[d]||0) + 1;
+    }
+  });
+  const userList = Object.values(users).sort((a,b)=> b.eventos - a.eventos);
+  return { userList, types, days, total: (rows||[]).length, uniqueUsers: userList.length };
+}
+
+function renderUsageReport(rows){
+  const stats = document.getElementById('usageStats');
+  const box = document.getElementById('usageReport');
+  const digest = buildUsageDigest(rows);
+  lastUsageDigest = [
+    'Uso InTrucks Guidelines · últimos 7 días',
+    'Usuarios activos: ' + digest.uniqueUsers,
+    'Eventos: ' + digest.total,
+    '',
+    digest.userList.map(u =>
+      usageShortEmail(u.email) +
+      ' · ' + u.sesiones + ' sesiones · ' +
+      u.guidelines + ' por estado · ' +
+      u.mga + ' por MGA · ' +
+      u.nv + ' New Ventures · ' +
+      u.clasificador + ' clasificador · ' +
+      u.days.size + ' días activos'
+    ).join('\n')
+  ].join('\n');
+
+  stats.innerHTML = `
+    <div class="usage-stat"><b>${digest.uniqueUsers}</b><span>usuarios activos</span></div>
+    <div class="usage-stat"><b>${digest.total}</b><span>acciones registradas</span></div>
+    <div class="usage-stat"><b>${digest.userList.reduce((n,u)=>n+u.sesiones,0)}</b><span>inicios de sesión</span></div>
+    <div class="usage-stat"><b>${(digest.types.guidelines_search||0)+(digest.types.mga_search||0)}</b><span>búsquedas</span></div>
+  `;
+
+  if(!digest.total){
+    box.innerHTML = emptyStateHtml('search', 'Aún no hay uso en los últimos 7 días. Las acciones se registran desde que existe la tabla <b>usage_events</b>.');
+    return;
+  }
+
+  const userRows = digest.userList.map(u=>`
+    <tr>
+      <td>${escapeHtml(usageShortEmail(u.email))}</td>
+      <td>${u.sesiones}</td>
+      <td>${u.guidelines}</td>
+      <td>${u.mga}</td>
+      <td>${u.nv}</td>
+      <td>${u.clasificador}</td>
+      <td>${u.eventos}</td>
+      <td>${u.days.size} día(s)</td>
+    </tr>
+  `).join('');
+
+  const typeRows = Object.keys(digest.types).sort((a,b)=>digest.types[b]-digest.types[a]).map(k=>`
+    <tr>
+      <td>${escapeHtml(USAGE_LABELS[k] || k)}</td>
+      <td>${digest.types[k]}</td>
+      <td>${digest.total ? Math.round(digest.types[k]*100/digest.total) : 0}%</td>
+    </tr>
+  `).join('');
+
+  const dayRows = Object.keys(digest.days).sort().reverse().map(d=>`
+    <tr><td>${escapeHtml(d)}</td><td>${digest.days[d]}</td></tr>
+  `).join('');
+
+  box.innerHTML = `
+    <div class="am-section">
+      <div class="am-section-head"><h3>Por usuario</h3></div>
+      <table class="am-tier-table">
+        <thead><tr><th>Usuario</th><th>Sesiones</th><th>Por estado</th><th>Por MGA</th><th>New Ventures</th><th>Clasificador</th><th>Total</th><th>Frecuencia</th></tr></thead>
+        <tbody>${userRows}</tbody>
+      </table>
+    </div>
+    <div class="am-section">
+      <div class="am-section-head"><h3>Por tipo de uso</h3></div>
+      <table class="am-tier-table">
+        <thead><tr><th>Tipo</th><th>Veces</th><th>%</th></tr></thead>
+        <tbody>${typeRows}</tbody>
+      </table>
+    </div>
+    <div class="am-section">
+      <div class="am-section-head"><h3>Actividad por día</h3></div>
+      <table class="am-tier-table">
+        <thead><tr><th>Fecha</th><th>Eventos</th></tr></thead>
+        <tbody>${dayRows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function loadUsageReport(){
+  const box = document.getElementById('usageReport');
+  const stats = document.getElementById('usageStats');
+  if(!box) return;
+  box.innerHTML = loaderHtml('Cargando uso de la semana…');
+  if(stats) stats.innerHTML = '';
+  if(!sb){
+    box.innerHTML = emptyStateHtml('warn', 'No se pudo cargar el servicio de datos.');
+    return;
+  }
+  const since = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+  const { data, error } = await sb.from('usage_events')
+    .select('created_at,user_email,event_type,module,detail')
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(5000);
+  if(error){
+    box.innerHTML = emptyStateHtml('warn',
+      'No se pudo leer el uso (' + escapeHtml(error.message) + ').<br>Ejecuta <b>usage-events.sql</b> en el SQL Editor de Supabase y recarga.');
+    return;
+  }
+  renderUsageReport(data||[]);
+}
+
+function copyUsageDigest(){
+  const text = lastUsageDigest || 'Sin datos de uso.';
+  const btn = document.getElementById('usageCopyBtn');
+  const done = function(){
+    if(!btn) return;
+    const prev = btn.textContent;
+    btn.textContent = 'Copiado';
+    setTimeout(function(){ btn.textContent = prev; }, 1600);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(function(){ window.prompt('Copia el resumen:', text); });
+  } else {
+    window.prompt('Copia el resumen:', text);
+  }
+}
 
 function isAllowedEmail(email){
   return String(email||'').trim().toLowerCase().endsWith('@'+ALLOWED_DOMAIN);
@@ -1969,6 +2205,7 @@ async function unlockApp(){
   const app = document.getElementById('app');
   dataReady = false;
   setSearchEnabled(false);
+  await refreshSessionEmail();
   const swap = ()=>{
     gate.style.display = 'none';
     app.style.display = 'block';
@@ -1994,6 +2231,7 @@ async function unlockApp(){
   initMgaSelects();
   dataReady = true;
   setSearchEnabled(true);
+  trackSessionStart();
   if(!programsLoadError){
     document.getElementById('results').innerHTML = emptyStateHtml('search',
       'Selecciona al menos el estado y presiona <b>Buscar opciones</b><br>para ver qué aseguradoras encajan con el riesgo.');
@@ -2282,6 +2520,7 @@ function runSearch(){
   });
   const deduped = [...dedupMap.values()];
   deduped.sort((a,b)=> b.ratio - a.ratio || (b.total-a.total));
+  track('guidelines_search', 'guidelines', { state, results: deduped.length });
 
   if(deduped.length===0){
     countSpan.textContent = `0 programa(s) disponibles en ${STATE_NAMES[state]||state}`;
@@ -2511,6 +2750,7 @@ function amClasificar(){
     <span class="am-tier">Riesgo ${escapeHtml(riesgo.toUpperCase())} · Flota ${escapeHtml(tPu)} · Antigüedad ${escapeHtml(tAnios)}</span>
     <p>${escapeHtml(result.texto)}</p>
   `;
+  track('account_map_classify', 'accountmap', { riesgo, tPu, tAnios });
 }
 
 function initAccountMap(){
@@ -2557,6 +2797,8 @@ function initAccountMap(){
 }
 
 initAccountMap();
+const usageCopyBtn = document.getElementById('usageCopyBtn');
+if(usageCopyBtn) usageCopyBtn.addEventListener('click', copyUsageDigest);
 
 </script>
 </body>
