@@ -921,7 +921,7 @@
   </footer>
 </div>
 
-<script src="account-map-data.js?v=2026-09-15.2"></script>
+<script src="account-map-data.js?v=2026-09-17.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ===== motion helpers (accesibilidad primero) ===== */
@@ -1114,12 +1114,19 @@ async function loadMgaPlaybook(){
   if(error){
     console.error('Error cargando mga_playbook:', error);
     MGA_PLAYBOOK = [];
+    window.MGA_PLAYBOOK = MGA_PLAYBOOK;
     return;
   }
   MGA_PLAYBOOK = (data||[]).map(row => ({
     mga: String(row.mga||'').trim(),
     contenido: String(row.contenido||'')
   })).filter(row => row.mga);
+  window.MGA_PLAYBOOK = MGA_PLAYBOOK;
+  if(!MGA_PLAYBOOK.length){
+    console.warn('mga_playbook: 0 filas. Si la tabla tiene datos, falta una policy SELECT para authenticated (el insert no alcanza).');
+  } else {
+    console.log('mga_playbook filas:', MGA_PLAYBOOK.length, MGA_PLAYBOOK.map(r => r.mga));
+  }
 }
 function findPlaybookEntry(nombreMga){
   const needle = String(nombreMga||'').trim().toUpperCase();
