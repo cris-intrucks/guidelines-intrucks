@@ -487,6 +487,10 @@
     margin:0;white-space:pre-wrap;font-family:'Inter',sans-serif;font-size:12.5px;
     color:var(--navy);line-height:1.55;
   }
+  .playbook-chip{
+    font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;white-space:nowrap;
+    background:var(--teal-soft);color:var(--teal);
+  }
 
   footer.legal{
     max-width:1180px;margin:10px auto 0;padding:0 20px 40px;font-size:11px;color:#9aa6bd;
@@ -921,7 +925,7 @@
   </footer>
 </div>
 
-<script src="account-map-data.js?v=2026-09-17.1"></script>
+<script src="account-map-data.js?v=2026-09-17.2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ===== motion helpers (accesibilidad primero) ===== */
@@ -1110,7 +1114,12 @@ async function loadMgaCarriers(){
   MGA_CARRIERS = (data||[]).map(normalizeRow);
 }
 async function loadMgaPlaybook(){
-  const { data, error } = await fetchAllRows('mga_playbook');
+  if(!sb){
+    MGA_PLAYBOOK = [];
+    window.MGA_PLAYBOOK = MGA_PLAYBOOK;
+    return;
+  }
+  const { data, error } = await sb.from('mga_playbook').select('mga, contenido');
   if(error){
     console.error('Error cargando mga_playbook:', error);
     MGA_PLAYBOOK = [];
@@ -1119,31 +1128,67 @@ async function loadMgaPlaybook(){
   }
   MGA_PLAYBOOK = (data||[]).map(row => ({
     mga: String(row.mga||'').trim(),
-    contenido: String(row.contenido||'')
-  })).filter(row => row.mga);
+    contenido: String(row.contenido==null?'':row.contenido)
+  })).filter(row => row.mga && row.contenido);
   window.MGA_PLAYBOOK = MGA_PLAYBOOK;
   if(!MGA_PLAYBOOK.length){
-    console.warn('mga_playbook: 0 filas. Si la tabla tiene datos, falta una policy SELECT para authenticated (el insert no alcanza).');
+    console.warn('mga_playbook: 0 filas visibles. Ejecuta mga-playbook-rls.sql y confirma select count(*) from mga_playbook;');
   } else {
     console.log('mga_playbook filas:', MGA_PLAYBOOK.length, MGA_PLAYBOOK.map(r => r.mga));
   }
 }
+function normalizeMgaName(s){
+  return String(s||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim().replace(/\s+/g,' ');
+}
+const MGA_NAME_STOP = {
+  INC:1, LLC:1, LTD:1, CORP:1, CO:1, THE:1, AND:1, RRG:1, INS:1, OF:1, FOR:1,
+  COMPANY:1, COMPANIES:1, NA:1
+};
+function mgaNameTokens(norm){
+  return norm.split(' ').filter(t => t.length >= 3 && !MGA_NAME_STOP[t]);
+}
 function findPlaybookEntry(nombreMga){
-  const needle = String(nombreMga||'').trim().toUpperCase();
+  const needle = normalizeMgaName(nombreMga);
   if(!needle) return null;
-  const hits = MGA_PLAYBOOK.filter(row=>{
-    const hay = String(row.mga||'').trim().toUpperCase();
-    if(!hay) return false;
-    return hay.includes(needle) || needle.includes(hay);
+  const nTokens = mgaNameTokens(needle);
+  let best = null;
+  let bestScore = 0;
+  MGA_PLAYBOOK.forEach(row=>{
+    const hay = normalizeMgaName(row.mga);
+    if(!hay) return;
+    let score = 0;
+    if(hay === needle) score = 5000 + hay.length;
+    else if(hay.includes(needle) || needle.includes(hay)) score = 1000 + Math.min(hay.length, needle.length);
+    else {
+      const hSet = {};
+      mgaNameTokens(hay).forEach(t=>{ hSet[t]=1; });
+      const overlap = nTokens.filter(t => hSet[t]);
+      if(!overlap.length) return;
+      score = overlap.reduce((n,t)=> n + t.length, 0);
+      if(score < 4) return;
+    }
+    if(score > bestScore || (score === bestScore && best && String(row.mga).length > String(best.mga).length)){
+      bestScore = score;
+      best = row;
+    }
   });
-  if(!hits.length) return null;
-  hits.sort((a,b)=> String(b.mga||'').trim().length - String(a.mga||'').trim().length);
-  return hits[0];
+  return best;
 }
 window.findPlaybookEntry = findPlaybookEntry;
-function playbookBlockHtml(nombreMga){
-  const entry = findPlaybookEntry(nombreMga);
-  if(!entry || !entry.contenido) return '';
+function findPlaybookForRow(row){
+  if(!row) return null;
+  if(typeof row === 'string') return findPlaybookEntry(row);
+  const names = [row.mga, row.carrier, row.programa];
+  let best = null;
+  names.forEach(n=>{
+    const hit = findPlaybookEntry(n);
+    if(hit && (!best || String(hit.mga).length > String(best.mga).length)) best = hit;
+  });
+  return best;
+}
+function playbookBlockHtml(row){
+  const entry = findPlaybookForRow(row);
+  if(!entry || !String(entry.contenido||'').trim()) return '';
   return `
    <div class="playbook-toggle" onclick="event.stopPropagation(); this.nextElementSibling.classList.toggle('open')">
      📘 Ver guía completa de la MGA
@@ -1281,6 +1326,7 @@ function runMgaSearch(){
     <div class="mga-carrier-card card-anim" style="--i:${i}">
       <h3>${escapeHtml(r.carrier||'—')}</h3>
       <div class="sub">${escapeHtml(r.programa||'—')} · Estados: ${escapeHtml(displayVal(r.estados))}</div>
+      ${playbookBlockHtml(r)}
       <div class="grid-crit">
         <div class="crit"><span class="k">BOR</span><span class="v">${escapeHtml(displayVal(r.bor))}</span></div>
         <div class="crit"><span class="k">Periodo BOR</span><span class="v">${escapeHtml(displayVal(r.bor_periodo))}</span></div>
@@ -1304,7 +1350,6 @@ function runMgaSearch(){
       </div>
       ${r.comentario ? `<div class="note"><b>Nota:</b> ${escapeHtml(r.comentario)}</div>` : ''}
       ${r.camaras_nota ? `<div class="note"><b>Cámaras:</b> ${escapeHtml(r.camaras_nota)}</div>` : ''}
-      ${playbookBlockHtml(r.mga || r.carrier)}
     </div>
   `).join('');
   };
@@ -2618,7 +2663,8 @@ function runSearch(){
       `).join('') + baseCriteria(p);
 
       const noteHtml = p.comentario ? `<div class="note"><b>Nota del suscriptor:</b> ${escapeHtml(p.comentario)}</div>` : '';
-      const playbookHtml = playbookBlockHtml(p.mga || p.carrier);
+      const playbookHtml = playbookBlockHtml(p);
+      const guiaChip = playbookHtml ? '<span class="playbook-chip">Guía</span>' : '';
 
       return `
       <div class="card card-anim" id="card-${idx}" style="--i:${idx}">
@@ -2638,6 +2684,7 @@ function runSearch(){
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <span class="card-chip ${chipClass}">${chipLabel}</span>
+            ${guiaChip}
             <span class="chevron">▾</span>
           </div>
         </div>
