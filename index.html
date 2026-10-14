@@ -235,7 +235,8 @@
   #view-guidelines.view-in,
   #view-newventures.view-in,
   #view-accountmap.view-in,
-  #view-usage.view-in{animation:viewIn .28s var(--ease-out) both;}
+  #view-usage.view-in,
+  #view-proposals.view-in{animation:viewIn .28s var(--ease-out) both;}
   @media (max-width:900px){.layout{grid-template-columns:1fr;}}
 
   .panel{
@@ -497,6 +498,74 @@
     line-height:1.6;text-align:center;
   }
 
+  /* ---------- Propuestas ---------- */
+  .prop-wrap{max-width:1100px;margin:0 auto;}
+  .prop-intro h2{font-size:18px;margin:0 0 6px;color:var(--navy);}
+  .prop-intro p{margin:0 0 18px;font-size:13.5px;color:var(--muted);line-height:1.5;}
+  .prop-steps{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px;padding:0;list-style:none;}
+  .prop-step{
+    flex:1;min-width:140px;padding:10px 12px;border-radius:9px;border:1.5px solid var(--line);
+    background:#fff;font-size:12.5px;font-weight:700;color:var(--muted);text-align:center;
+  }
+  .prop-step.active{border-color:var(--teal);background:var(--teal-soft);color:var(--teal);}
+  .prop-step.done{border-color:#cfe4dc;color:var(--navy);}
+  .prop-card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px 18px;margin-bottom:16px;
+  }
+  .prop-card h3{font-size:14.5px;margin:0 0 6px;color:var(--navy);}
+  .prop-card .hint{font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5;}
+  .prop-drop{
+    border:1.5px dashed var(--line);border-radius:12px;padding:28px 16px;text-align:center;
+    cursor:pointer;background:#fbfcfe;color:var(--muted);font-size:13.5px;line-height:1.5;
+    transition:border-color .15s, background .15s;
+  }
+  .prop-drop:hover,.prop-drop.drag{border-color:var(--teal);background:var(--teal-soft);color:var(--navy);}
+  .prop-drop b{display:block;color:var(--ink);margin-bottom:4px;}
+  .prop-file{font-size:12px;color:var(--muted);margin:10px 0 0;text-align:center;}
+  .prop-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+  .prop-actions .search-btn{width:auto;flex:1;min-width:180px;margin-top:0;}
+  .prop-actions .prop-secondary{
+    flex:0 1 auto;padding:13px 16px;border-radius:10px;border:1.5px solid var(--line);
+    background:#fff;font-weight:600;font-size:13.5px;color:var(--navy);cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .prop-actions .prop-secondary:hover{border-color:var(--teal);color:var(--teal);}
+  .prop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px 14px;}
+  #view-proposals input[type=text],
+  #view-proposals input[type=email],
+  #view-proposals textarea{
+    width:100%;padding:10px 12px;border-radius:9px;border:1.5px solid var(--line);
+    font-size:13.5px;font-family:'Inter',sans-serif;outline:none;background:#fff;color:var(--ink);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  #view-proposals textarea{min-height:88px;resize:vertical;}
+  #view-proposals input[type=text]:focus,
+  #view-proposals input[type=email]:focus,
+  #view-proposals textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft);}
+  #view-proposals input.prop-missing,
+  #view-proposals textarea.prop-missing{
+    border-color:var(--warn);background:var(--warn-bg);
+  }
+  .prop-table-wrap{overflow:auto;margin:0 0 10px;}
+  .prop-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .prop-table th{
+    text-align:left;font-size:11px;color:var(--navy);padding:8px 6px;border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  .prop-table td{padding:6px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  .prop-table input[type=text]{min-width:92px;}
+  .prop-table input[type=checkbox]{accent-color:var(--teal);width:16px;height:16px;}
+  .prop-row-del,.prop-add{
+    border:none;background:none;color:var(--teal);font-size:12.5px;font-weight:600;
+    cursor:pointer;font-family:'Inter',sans-serif;padding:4px 0;
+  }
+  .prop-row-del{color:var(--bad);}
+  .prop-missing-banner{
+    background:var(--warn-bg);border:1px solid #f0dca3;color:#7a5b06;
+    border-radius:10px;padding:10px 14px;font-size:12.5px;margin-bottom:14px;
+  }
+
   /* ---------- Mapa de Cuentas ---------- */
   #view-accountmap{margin:0;}
   .am-hero{
@@ -718,6 +787,7 @@
       <div class="toggle-btn active" data-module="guidelines" onclick="switchModule('guidelines')">Buscador de Guidelines</div>
       <div class="toggle-btn" data-module="newventures" onclick="switchModule('newventures')">New Ventures</div>
       <div class="toggle-btn" data-module="accountmap" onclick="switchModule('accountmap')">Mapa de Cuentas</div>
+      <div class="toggle-btn" data-module="proposals" onclick="switchModule('proposals')">Propuestas</div>
       <div class="toggle-btn" data-module="usage" onclick="switchModule('usage')">Uso semanal</div>
     </nav>
   </header>
@@ -904,6 +974,149 @@
       </div>
     </section>
 
+    <section id="view-proposals" style="display:none;" hidden>
+      <div class="prop-wrap">
+        <div class="prop-intro">
+          <h2>Propuestas</h2>
+          <p>Sube el APP QUOTE de InTrucks, revisa y corrige cada dato extraído, captura las primas y genera una propuesta en PDF. Nada se guarda en base de datos.</p>
+        </div>
+        <ol class="prop-steps" aria-label="Pasos">
+          <li class="prop-step active" data-step="1">1 · Subir APP QUOTE</li>
+          <li class="prop-step" data-step="2">2 · Revisar datos</li>
+          <li class="prop-step" data-step="3">3 · Primas y PDF</li>
+        </ol>
+
+        <div id="propStepUpload">
+          <div class="prop-card">
+            <h3>APP QUOTE en PDF</h3>
+            <p class="hint">Formato fijo: Application Information, Commodities Hauled, Request Coverage, Drivers, Vehicles, Trailers. Máximo 3.5 MB. La extracción corre en el servidor; la clave de Gemini no viaja al navegador.</p>
+            <input id="propPdfInput" type="file" accept="application/pdf,.pdf" hidden>
+            <div class="prop-drop" id="propDrop" tabindex="0" role="button" aria-label="Seleccionar PDF">
+              <b>Arrastra el PDF aquí o haz clic para elegir</b>
+              Solo archivos .pdf del APP QUOTE de InTrucks
+            </div>
+            <p class="prop-file" id="propFileName">Ningún archivo seleccionado</p>
+            <div class="prop-actions">
+              <button type="button" class="search-btn" id="propExtractBtn" disabled>Extraer datos</button>
+            </div>
+          </div>
+          <div id="propExtractStatus"></div>
+        </div>
+
+        <div id="propStepReview" hidden>
+          <div class="prop-missing-banner" id="propMissingBanner" hidden></div>
+          <div class="prop-card">
+            <h3>Application Information</h3>
+            <p class="hint">Todo lo extraído es no confiable. Corrige antes de generar el PDF. Los campos vacíos quedan en ámbar — no se inventa nada.</p>
+            <div class="prop-grid">
+              <div class="field"><label for="prop-a-legalName">Razón social</label><input type="text" id="prop-a-legalName" autocomplete="off"></div>
+              <div class="field"><label for="prop-a-dba">DBA</label><input type="text" id="prop-a-dba" autocomplete="off"></div>
+              <div class="field"><label for="prop-a-dotNumber">USDOT</label><input type="text" id="prop-a-dotNumber" autocomplete="off"></div>
+              <div class="field"><label for="prop-a-mcNumber">MC</label><input type="text" id="prop-a-mcNumber" autocomplete="off"></div>
+              <div class="field"><label for="prop-a-street">Dirección</label><input type="text" id="prop-a-street" autocomplete="off"></div>
+              <div class="field"><label for="prop-a-city">Ciudad</label><input type="text" id="prop-a-city" autocomplete="off"></div>
+              <div class="field"><label for="prop-a-state">Estado</label><input type="text" id="prop-a-state" autocomplete="off"></div>
+              <div class="field"><label for="prop-a-zip">ZIP</label><input type="text" id="prop-a-zip" autocomplete="off"></div>
+              <div class="field"><label for="prop-a-yearsInBusiness">Años en el negocio</label><input type="text" id="prop-a-yearsInBusiness" autocomplete="off"></div>
+              <div class="field"><label for="prop-a-entityType">Tipo de entidad</label><input type="text" id="prop-a-entityType" autocomplete="off"></div>
+              <div class="field"><label for="prop-a-phone">Teléfono del asegurado</label><input type="text" id="prop-a-phone" autocomplete="off"></div>
+              <div class="field"><label for="prop-a-email">Email del asegurado</label><input type="email" id="prop-a-email" autocomplete="off"></div>
+              <div class="field"><label for="prop-a-operationType">Tipo de operación</label><input type="text" id="prop-a-operationType" autocomplete="off"></div>
+              <div class="field"><label for="prop-a-radius">Radio de operación</label><input type="text" id="prop-a-radius" autocomplete="off"></div>
+              <div class="field"><label for="prop-preparedBy">Preparado por (vendedor)</label><input type="text" id="prop-preparedBy" autocomplete="off"></div>
+            </div>
+          </div>
+
+          <div class="prop-card">
+            <h3>Commodities Hauled</h3>
+            <div class="prop-table-wrap">
+              <table class="prop-table">
+                <thead><tr><th>Commodity</th><th>%</th><th></th></tr></thead>
+                <tbody id="prop-commodities-body"></tbody>
+              </table>
+            </div>
+            <button type="button" class="prop-add" data-prop-add="commodities">+ Agregar commodity</button>
+          </div>
+
+          <div class="prop-card">
+            <h3>Request Coverage</h3>
+            <div class="prop-table-wrap">
+              <table class="prop-table">
+                <thead><tr><th>Línea</th><th>Solicitada</th><th>Límite</th><th>Deducible</th><th></th></tr></thead>
+                <tbody id="prop-coverages-body"></tbody>
+              </table>
+            </div>
+            <button type="button" class="prop-add" data-prop-add="coverages">+ Agregar cobertura</button>
+          </div>
+
+          <div class="prop-card">
+            <h3>Drivers</h3>
+            <p class="hint">Sin número de licencia ni fecha de nacimiento — no van en la propuesta al cliente.</p>
+            <div class="prop-table-wrap">
+              <table class="prop-table">
+                <thead><tr><th>Nombre</th><th>Status</th><th>CDL</th><th>Estado lic.</th><th></th></tr></thead>
+                <tbody id="prop-drivers-body"></tbody>
+              </table>
+            </div>
+            <button type="button" class="prop-add" data-prop-add="drivers">+ Agregar conductor</button>
+          </div>
+
+          <div class="prop-card">
+            <h3>Vehicles</h3>
+            <div class="prop-table-wrap">
+              <table class="prop-table">
+                <thead><tr><th>Año</th><th>Marca</th><th>Modelo</th><th>VIN</th><th>Valor</th><th>GVW</th><th>Tipo</th><th></th></tr></thead>
+                <tbody id="prop-vehicles-body"></tbody>
+              </table>
+            </div>
+            <button type="button" class="prop-add" data-prop-add="vehicles">+ Agregar unidad</button>
+          </div>
+
+          <div class="prop-card">
+            <h3>Trailers</h3>
+            <div class="prop-table-wrap">
+              <table class="prop-table">
+                <thead><tr><th>Año</th><th>Marca</th><th>Modelo</th><th>VIN</th><th>Valor</th><th>Tipo</th><th></th></tr></thead>
+                <tbody id="prop-trailers-body"></tbody>
+              </table>
+            </div>
+            <button type="button" class="prop-add" data-prop-add="trailers">+ Agregar trailer</button>
+          </div>
+
+          <div class="prop-actions">
+            <button type="button" class="search-btn" id="propToPremiumsBtn">Continuar a primas</button>
+            <button type="button" class="prop-secondary" id="propResetBtn">Empezar de nuevo</button>
+          </div>
+        </div>
+
+        <div id="propStepPremiums" hidden>
+          <div class="prop-card">
+            <h3>Primas cotizadas</h3>
+            <p class="hint">Las ingresa el vendedor. El PDF no incluye nombres de MGA/aseguradora ni contactos de broker.</p>
+            <div class="prop-grid">
+              <div class="field"><label for="prop-p-autoLiability">Auto liability</label><input type="text" id="prop-p-autoLiability" placeholder="$" autocomplete="off"></div>
+              <div class="field"><label for="prop-p-physicalDamage">Physical damage</label><input type="text" id="prop-p-physicalDamage" placeholder="$" autocomplete="off"></div>
+              <div class="field"><label for="prop-p-motorTruckCargo">Motor truck cargo</label><input type="text" id="prop-p-motorTruckCargo" placeholder="$" autocomplete="off"></div>
+              <div class="field"><label for="prop-p-generalLiability">General liability</label><input type="text" id="prop-p-generalLiability" placeholder="$" autocomplete="off"></div>
+              <div class="field"><label for="prop-p-trailerInterchange">Trailer interchange</label><input type="text" id="prop-p-trailerInterchange" placeholder="$" autocomplete="off"></div>
+              <div class="field"><label for="prop-p-other">Otra prima</label><input type="text" id="prop-p-other" placeholder="$" autocomplete="off"></div>
+              <div class="field"><label for="prop-p-downPayment">Down payment</label><input type="text" id="prop-p-downPayment" placeholder="$" autocomplete="off"></div>
+              <div class="field"><label for="prop-p-paymentPlan">Plan de pago</label><input type="text" id="prop-p-paymentPlan" autocomplete="off"></div>
+            </div>
+            <div class="field" style="margin-top:8px;">
+              <label for="prop-p-notes">Notas para el cliente</label>
+              <textarea id="prop-p-notes" maxlength="2000"></textarea>
+            </div>
+          </div>
+          <div class="prop-actions">
+            <button type="button" class="search-btn" id="propPdfBtn">Generar propuesta PDF</button>
+            <button type="button" class="prop-secondary" id="propBackReviewBtn">Volver a revisar</button>
+            <button type="button" class="prop-secondary" id="propResetBtn2">Empezar de nuevo</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="view-usage" style="display:none;" hidden>
       <div class="usage-wrap">
         <div class="usage-head">
@@ -925,7 +1138,8 @@
   </footer>
 </div>
 
-<script src="account-map-data.js?v=2026-09-17.3"></script>
+<script src="financing.js?v=2026-10-13.1"></script>
+<script src="account-map-data.js?v=2026-10-13.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ===== motion helpers (accesibilidad primero) ===== */
@@ -1220,6 +1434,7 @@ function switchModule(mod){
     guidelines: document.getElementById('view-guidelines'),
     newventures: document.getElementById('view-newventures'),
     accountmap: document.getElementById('view-accountmap'),
+    proposals: document.getElementById('view-proposals'),
     usage: document.getElementById('view-usage')
   };
   if(!views[mod]) return;
@@ -1747,54 +1962,6 @@ function nvFindRowByKey(key){
   return NV_PRICING.find(row => nvRowKey(row) === key) || null;
 }
 
-/**
- * Cálculo por porcentaje (PD / TI-NOT) con financiamiento APR 18% anual.
- * Fallbacks: financiamiento_down_pct → 20, financiamiento_cuotas → 9.
- * Retorna null si el avalúo o el porcentaje no son válidos (> 0).
- * Liability / Cargo / Excess NO usan esta función (usan monthly_payment de BD).
- */
-function nvCalcPorcentaje(row, avaluo){
-  const APR = 0.18;
-  const i = APR / 12; // 0.015
-
-  const a = Number(avaluo);
-  const pct = Number(row.porcentaje);
-  if(!(a > 0) || !(pct > 0)) return null;
-
-  const downPct = Number(row.financiamiento_down_pct) || 20;
-  const cuotasRaw = Number(row.financiamiento_cuotas);
-  const cuotas = (cuotasRaw && cuotasRaw > 0) ? cuotasRaw : 9;
-
-  const prima = a * (pct / 100);
-  const down = prima * (downPct / 100);
-  const P = prima - down;
-
-  // Cuota lineal sin interés (solo para auditoría / comparación)
-  const mensualidadLineal = (P > 0 && cuotas > 0) ? (P / cuotas) : 0;
-
-  let mensualidad = 0;
-  if(P > 0){
-    const factor = Math.pow(1 + i, cuotas);
-    mensualidad = P * (i * factor) / (factor - 1);
-  }
-
-  if(!Number.isFinite(down) || !Number.isFinite(mensualidad)) return null;
-
-  return {
-    avaluo: a,
-    pct,
-    downPct,
-    cuotas,
-    apr: APR,
-    i,
-    primaAnual: prima,
-    down,
-    financiado: P,
-    monthlyLineal: mensualidadLineal,
-    monthly: mensualidad
-  };
-}
-
 function calcularResumen(){
   const box = document.getElementById('nvSummary');
   if(!box) return;
@@ -1933,6 +2100,10 @@ const SUPABASE_URL = "https://xikhqdedhgeapczmnguy.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhpa2hxZGVkaGdlYXBjem1uZ3V5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxNDcwMzYsImV4cCI6MjA5OTcyMzAzNn0.3x7Yf527cIuQ1dkSK_uonnNMCW94tGkgcH39cqHqUUI";
 const ALLOWED_DOMAIN = "intruckscorp.com";
 
+function isAllowedEmail(email){
+  return String(email||'').trim().toLowerCase().endsWith('@'+ALLOWED_DOMAIN);
+}
+
 const sb = window.supabase
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
@@ -1947,12 +2118,15 @@ const USAGE_LABELS = {
   guidelines_search: 'Búsqueda por estado',
   mga_search: 'Búsqueda por MGA',
   nv_open: 'New Ventures',
-  account_map_classify: 'Clasificador de riesgo'
+  account_map_classify: 'Clasificador de riesgo',
+  proposal_extract: 'Extracción de APP QUOTE',
+  proposal_pdf: 'Propuesta PDF'
 };
 const MODULE_LABELS = {
   guidelines: 'Guidelines',
   newventures: 'New Ventures',
   accountmap: 'Mapa de Cuentas',
+  proposals: 'Propuestas',
   usage: 'Uso semanal'
 };
 
@@ -2133,10 +2307,6 @@ function copyUsageDigest(){
   } else {
     window.prompt('Copia el resumen:', text);
   }
-}
-
-function isAllowedEmail(email){
-  return String(email||'').trim().toLowerCase().endsWith('@'+ALLOWED_DOMAIN);
 }
 
 function setGateErr(msg, shake){
@@ -2876,5 +3046,6 @@ const usageCopyBtn = document.getElementById('usageCopyBtn');
 if(usageCopyBtn) usageCopyBtn.addEventListener('click', copyUsageDigest);
 
 </script>
+<script src="proposals.js?v=2026-10-13.1"></script>
 </body>
 </html>

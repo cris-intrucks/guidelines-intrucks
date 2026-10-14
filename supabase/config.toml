@@ -1,0 +1,2 @@
+[functions.extract-app-quote]
+verify_jwt = true
