@@ -68,6 +68,34 @@ function jsonRes(req: Request, status: number, body: Record<string, unknown>) {
   });
 }
 
+function clipLog(s: string, n = 4000): string {
+  const t = String(s || '');
+  return t.length > n ? t.slice(0, n) + '…[truncated]' : t;
+}
+
+function redactSecrets(s: string, key: string): string {
+  let out = clipLog(s);
+  if (key && key.length > 8) out = out.split(key).join('[redacted]');
+  return out;
+}
+
+function errMeta(e: unknown): Record<string, string> {
+  if (!e || typeof e !== 'object') return { message: String(e) };
+  const x = e as { name?: string; message?: string; cause?: unknown };
+  return {
+    name: String(x.name || ''),
+    message: String(x.message || ''),
+    cause: x.cause != null ? String(x.cause) : '',
+  };
+}
+
+function normalizePdfBase64(raw: string): string {
+  let s = raw.replace(/\s/g, '');
+  const comma = s.indexOf(',');
+  if (/^data:/i.test(s) && comma >= 0) s = s.slice(comma + 1);
+  return s;
+}
+
 function asStr(v: unknown): string | null {
   if (v == null) return null;
   if (typeof v === 'number' && Number.isFinite(v)) return String(v);
@@ -232,7 +260,14 @@ function isModelUnavailable(status: number, err: { error?: { status?: string; co
 Deno.serve(async (req) => {
   try {
     return await handleExtract(req);
-  } catch {
+  } catch (e) {
+    const key = Deno.env.get('GEMINI_API_KEY') || '';
+    const meta = errMeta(e);
+    console.error('extract-app-quote uncaught', {
+      name: meta.name,
+      message: redactSecrets(meta.message, key),
+      cause: redactSecrets(meta.cause, key),
+    });
     return jsonRes(req, 502, { error: 'extract_failed' });
   }
 });
@@ -261,7 +296,10 @@ async function handleExtract(req: Request): Promise<Response> {
   }
 
   const geminiKey = Deno.env.get('GEMINI_API_KEY') || '';
-  if (!geminiKey) return jsonRes(req, 500, { error: 'missing_gemini_key' });
+  if (!geminiKey) {
+    console.error('extract-app-quote missing_gemini_key');
+    return jsonRes(req, 500, { error: 'missing_gemini_key' });
+  }
 
   let payload: { pdfBase64?: unknown };
   try {
@@ -270,7 +308,7 @@ async function handleExtract(req: Request): Promise<Response> {
     return jsonRes(req, 400, { error: 'invalid_pdf' });
   }
 
-  const pdfBase64 = typeof payload.pdfBase64 === 'string' ? payload.pdfBase64.replace(/\s/g, '') : '';
+  const pdfBase64 = typeof payload.pdfBase64 === 'string' ? normalizePdfBase64(payload.pdfBase64) : '';
   if (!pdfBase64 || pdfBase64.length < 80) return jsonRes(req, 400, { error: 'invalid_pdf' });
 
   const approxBytes = Math.floor(pdfBase64.length * 0.75);
@@ -290,9 +328,17 @@ async function handleExtract(req: Request): Promise<Response> {
     },
   };
 
-  // Documented 3.5 Flash ID for PDF/document extraction (no gemini-3.5-flash in Google AI models list).
-  const model = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.5-flash-lite';
+  const model = (Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.5-flash-lite').trim().replace(/^models\//, '');
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  console.error('extract-app-quote gemini_request', {
+    model,
+    endpoint: url,
+    field: 'inlineData',
+    mimeType: 'application/pdf',
+    pdfChars: pdfBase64.length,
+    pdfBytesApprox: approxBytes,
+    keyConfigured: geminiKey.length > 0,
+  });
 
   let res: Response;
   try {
@@ -306,8 +352,15 @@ async function handleExtract(req: Request): Promise<Response> {
       signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
     });
   } catch (e) {
-    const name = e && typeof e === 'object' && 'name' in e ? String((e as { name?: string }).name) : '';
-    if (name === 'TimeoutError' || name === 'AbortError') {
+    const meta = errMeta(e);
+    console.error('extract-app-quote gemini_fetch', {
+      model,
+      endpoint: url,
+      name: meta.name,
+      message: redactSecrets(meta.message, geminiKey),
+      cause: redactSecrets(meta.cause, geminiKey),
+    });
+    if (meta.name === 'TimeoutError' || meta.name === 'AbortError') {
       return jsonRes(req, 504, { error: 'extract_failed' });
     }
     return jsonRes(req, 502, { error: 'extract_failed' });
@@ -315,21 +368,50 @@ async function handleExtract(req: Request): Promise<Response> {
 
   if (res.status === 429) return jsonRes(req, 429, { error: 'busy' });
 
+  let rawText = '';
+  try {
+    rawText = await res.text();
+  } catch (e) {
+    const meta = errMeta(e);
+    console.error('extract-app-quote gemini_read', {
+      status: res.status,
+      model,
+      name: meta.name,
+      message: redactSecrets(meta.message, geminiKey),
+      cause: redactSecrets(meta.cause, geminiKey),
+    });
+    return jsonRes(req, 502, { error: 'extract_failed' });
+  }
+
   let gemini: {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    error?: { status?: string; code?: number };
+    error?: { status?: string; code?: number; message?: string };
   } | null = null;
   try {
-    gemini = await res.json();
+    gemini = rawText ? JSON.parse(rawText) : null;
   } catch {
+    console.error('extract-app-quote gemini_json', {
+      status: res.status,
+      model,
+      rawText: redactSecrets(rawText, geminiKey),
+    });
     return jsonRes(req, 502, { error: 'extract_failed' });
   }
 
   if (isModelUnavailable(res.status, gemini)) {
+    console.error('extract-app-quote model_unavailable', {
+      status: res.status,
+      model,
+      geminiStatus: gemini?.error?.status || '',
+    });
     return jsonRes(req, 502, { error: 'model_unavailable' });
   }
   if (!res.ok) {
-    console.error('extract-app-quote gemini_status', res.status);
+    console.error('extract-app-quote gemini_http', {
+      status: res.status,
+      model,
+      body: redactSecrets(rawText, geminiKey),
+    });
     return jsonRes(req, 502, { error: 'extract_failed' });
   }
 
