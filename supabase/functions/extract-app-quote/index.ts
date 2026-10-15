@@ -139,6 +139,68 @@ function parseGeminiJson(text: string): unknown {
   }
 }
 
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return v != null && typeof v === 'object' && !Array.isArray(v);
+}
+function isStrish(v: unknown): boolean {
+  return v == null || typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean';
+}
+function isBoolish(v: unknown): boolean {
+  return v == null || typeof v === 'boolean' || typeof v === 'string' || typeof v === 'number';
+}
+
+/** Collects invalid JSON paths only — never values. */
+function invalidExtractPaths(raw: unknown): string[] {
+  const paths: string[] = [];
+  if (!isPlainObject(raw)) {
+    paths.push('(root)');
+    return paths;
+  }
+  if ('documentType' in raw && !isStrish(raw.documentType)) paths.push('documentType');
+
+  const applicantSpec = [
+    'legalName', 'dba', 'dotNumber', 'mcNumber', 'street', 'city', 'state', 'zip',
+    'yearsInBusiness', 'entityType', 'phone', 'email', 'operationType', 'radius',
+  ];
+  if ('applicant' in raw) {
+    if (!isPlainObject(raw.applicant)) paths.push('applicant');
+    else {
+      applicantSpec.forEach((k) => {
+        if (k in raw.applicant && !isStrish(raw.applicant[k])) paths.push('applicant.' + k);
+      });
+    }
+  }
+
+  function checkRows(key: string, spec: Record<string, 'str' | 'bool'>) {
+    if (!(key in raw)) return;
+    const arr = raw[key];
+    if (arr == null) return;
+    if (!Array.isArray(arr)) {
+      paths.push(key);
+      return;
+    }
+    arr.forEach((row, i) => {
+      const p = key + '[' + i + ']';
+      if (!isPlainObject(row)) {
+        paths.push(p);
+        return;
+      }
+      Object.keys(spec).forEach((field) => {
+        if (!(field in row)) return;
+        const ok = spec[field] === 'bool' ? isBoolish(row[field]) : isStrish(row[field]);
+        if (!ok) paths.push(p + '.' + field);
+      });
+    });
+  }
+
+  checkRows('commodities', { description: 'str', percent: 'str' });
+  checkRows('coverages', { line: 'str', requested: 'bool', limit: 'str', deductible: 'str' });
+  checkRows('drivers', { name: 'str', status: 'str', cdlClass: 'str', licenseState: 'str' });
+  checkRows('vehicles', { year: 'str', make: 'str', model: 'str', vin: 'str', statedValue: 'str', gvw: 'str', unitType: 'str' });
+  checkRows('trailers', { year: 'str', make: 'str', model: 'str', vin: 'str', statedValue: 'str', trailerType: 'str' });
+  return paths;
+}
+
 function isPdfBase64(b64: string): boolean {
   try {
     const head = atob(b64.slice(0, 48));
@@ -254,6 +316,12 @@ Deno.serve(async (req) => {
     parsed = parseGeminiJson(text);
   } catch {
     return jsonRes(req, 502, { error: 'extract_failed' });
+  }
+
+  const invalidPaths = invalidExtractPaths(parsed);
+  if (invalidPaths.length) {
+    console.error('extract-app-quote invalid_paths', invalidPaths.join(','));
+    return jsonRes(req, 422, { error: 'extraction_invalid' });
   }
 
   const data = sanitizeExtract(parsed);

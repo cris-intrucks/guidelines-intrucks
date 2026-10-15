@@ -107,6 +107,8 @@
     forbidden: 'Tu correo no está autorizado para extraer APP QUOTE.',
     busy: 'El extractor está ocupado. Espera un minuto e inténtalo de nuevo.',
     extract_failed: 'No se pudieron leer los datos del PDF. Revisa el archivo o captura los datos a mano.',
+    extraction_invalid: 'La extracción no trajo un JSON válido. Revisa el APP QUOTE o captura los datos a mano.',
+    method_not_allowed: 'No se pudo llamar al extractor. Recarga la página.',
   };
 
   let propFile = null;
@@ -186,17 +188,29 @@
   }
 
   async function readFnError(error) {
+    let status = 0;
+    let code = 'extract_failed';
     try {
-      if (error && error.context && typeof error.context.json === 'function') {
-        const body = await error.context.json();
-        if (body && typeof body.error === 'string') return body.error;
+      if (error && error.context) {
+        status = Number(error.context.status) || 0;
+        if (typeof error.context.json === 'function') {
+          const body = await error.context.json();
+          if (body && typeof body.error === 'string') code = body.error;
+        }
       }
-    } catch (_) { /* no PII */ }
-    return 'extract_failed';
+    } catch (_) { /* no PII — no body text */ }
+    if (!/^[a-z0-9_]{1,64}$/.test(code)) code = 'extract_failed';
+    return { status: status, code: code };
   }
 
   function userMsg(code) {
     return ERROR_COPY[code] || ERROR_COPY.extract_failed;
+  }
+
+  function fnErrorHtml(status, code) {
+    const safe = /^[a-z0-9_]{1,64}$/.test(code) ? code : 'extract_failed';
+    const tag = status ? ('Error ' + status + ' ' + safe) : ('Error ' + safe);
+    return escapeHtml(tag) + '<br>' + escapeHtml(userMsg(safe));
   }
 
   function addRow(kind, data) {
@@ -530,13 +544,13 @@
         body: { pdfBase64: pdfBase64 },
       });
       if (error) {
-        const code = await readFnError(error);
-        showExtractStatus('warn', userMsg(code));
+        const fnErr = await readFnError(error);
+        showExtractStatus('warn', fnErrorHtml(fnErr.status, fnErr.code));
         return;
       }
       const extracted = data && data.data ? data.data : data;
       if (!extracted || (extracted.documentType && extracted.documentType !== 'APP_QUOTE')) {
-        showExtractStatus('warn', userMsg('not_app_quote'));
+        showExtractStatus('warn', fnErrorHtml(422, 'not_app_quote'));
         return;
       }
       applyExtracted(extracted);
