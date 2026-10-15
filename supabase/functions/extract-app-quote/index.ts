@@ -344,10 +344,12 @@ async function handleExtract(req: Request): Promise<Response> {
   };
 
   const model = Deno.env.get('GEMINI_MODEL')?.trim() || 'gemini-2.5-flash';
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-  const url = `${endpoint}?key=${encodeURIComponent(apiKey)}`;
+  const modelName = model.startsWith('models/') ? model : `models/${model}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent`;
+  const geminiUrl = `${endpoint}?key=${encodeURIComponent(apiKey)}`;
   console.error('extract-app-quote gemini_request', {
     model,
+    modelName,
     endpoint,
     field: 'inlineData',
     mimeType: 'application/pdf',
@@ -358,7 +360,7 @@ async function handleExtract(req: Request): Promise<Response> {
 
   let res: Response;
   try {
-    res = await fetch(url, {
+    res = await fetch(geminiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
