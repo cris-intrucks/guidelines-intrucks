@@ -73,10 +73,25 @@ function clipLog(s: string, n = 4000): string {
   return t.length > n ? t.slice(0, n) + '…[truncated]' : t;
 }
 
+function sanitizeGeminiKey(raw: string | undefined | null): string {
+  let s = String(raw ?? '').replace(/^\uFEFF/, '').trim();
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    s = s.slice(1, -1).trim();
+  }
+  return s.replace(/[\u0000-\u001F\u007F]/g, '').trim();
+}
+
 function redactSecrets(s: string, key: string): string {
   let out = clipLog(s);
-  if (key && key.length > 8) out = out.split(key).join('[redacted]');
-  return out;
+  if (key && key.length > 8) {
+    out = out.split(key).join('[redacted]');
+    const encoded = encodeURIComponent(key);
+    if (encoded !== key) out = out.split(encoded).join('[redacted]');
+  }
+  return out.replace(/([?&]key=)[^&\s"'<>]+/gi, '$1[redacted]');
 }
 
 function errMeta(e: unknown): Record<string, string> {
@@ -261,7 +276,7 @@ Deno.serve(async (req) => {
   try {
     return await handleExtract(req);
   } catch (e) {
-    const key = Deno.env.get('GEMINI_API_KEY') || '';
+    const key = sanitizeGeminiKey(Deno.env.get('GEMINI_API_KEY'));
     const meta = errMeta(e);
     console.error('extract-app-quote uncaught', {
       name: meta.name,
@@ -295,8 +310,8 @@ async function handleExtract(req: Request): Promise<Response> {
     return jsonRes(req, 403, { error: 'forbidden' });
   }
 
-  const geminiKey = Deno.env.get('GEMINI_API_KEY') || '';
-  if (!geminiKey) {
+  const apiKey = sanitizeGeminiKey(Deno.env.get('GEMINI_API_KEY'));
+  if (!apiKey) {
     console.error('extract-app-quote missing_gemini_key');
     return jsonRes(req, 500, { error: 'missing_gemini_key' });
   }
@@ -329,15 +344,16 @@ async function handleExtract(req: Request): Promise<Response> {
   };
 
   const model = (Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.5-flash-lite').trim().replace(/^models\//, '');
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const url = `${endpoint}?key=${encodeURIComponent(apiKey)}`;
   console.error('extract-app-quote gemini_request', {
     model,
-    endpoint: url,
+    endpoint,
     field: 'inlineData',
     mimeType: 'application/pdf',
     pdfChars: pdfBase64.length,
     pdfBytesApprox: approxBytes,
-    keyConfigured: geminiKey.length > 0,
+    keyConfigured: apiKey.length > 0,
   });
 
   let res: Response;
@@ -346,7 +362,6 @@ async function handleExtract(req: Request): Promise<Response> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': geminiKey,
       },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
@@ -355,10 +370,10 @@ async function handleExtract(req: Request): Promise<Response> {
     const meta = errMeta(e);
     console.error('extract-app-quote gemini_fetch', {
       model,
-      endpoint: url,
+      endpoint,
       name: meta.name,
-      message: redactSecrets(meta.message, geminiKey),
-      cause: redactSecrets(meta.cause, geminiKey),
+      message: redactSecrets(meta.message, apiKey),
+      cause: redactSecrets(meta.cause, apiKey),
     });
     if (meta.name === 'TimeoutError' || meta.name === 'AbortError') {
       return jsonRes(req, 504, { error: 'extract_failed' });
@@ -377,8 +392,8 @@ async function handleExtract(req: Request): Promise<Response> {
       status: res.status,
       model,
       name: meta.name,
-      message: redactSecrets(meta.message, geminiKey),
-      cause: redactSecrets(meta.cause, geminiKey),
+      message: redactSecrets(meta.message, apiKey),
+      cause: redactSecrets(meta.cause, apiKey),
     });
     return jsonRes(req, 502, { error: 'extract_failed' });
   }
@@ -393,7 +408,7 @@ async function handleExtract(req: Request): Promise<Response> {
     console.error('extract-app-quote gemini_json', {
       status: res.status,
       model,
-      rawText: redactSecrets(rawText, geminiKey),
+      rawText: redactSecrets(rawText, apiKey),
     });
     return jsonRes(req, 502, { error: 'extract_failed' });
   }
@@ -410,7 +425,7 @@ async function handleExtract(req: Request): Promise<Response> {
     console.error('extract-app-quote gemini_http', {
       status: res.status,
       model,
-      body: redactSecrets(rawText, geminiKey),
+      body: redactSecrets(rawText, apiKey),
     });
     return jsonRes(req, 502, { error: 'extract_failed' });
   }
