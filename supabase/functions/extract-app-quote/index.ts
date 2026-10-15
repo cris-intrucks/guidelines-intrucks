@@ -343,9 +343,9 @@ async function handleExtract(req: Request): Promise<Response> {
     },
   };
 
-  const model = Deno.env.get('GEMINI_MODEL')?.trim() || 'gemini-2.5-flash';
+  const model = Deno.env.get('GEMINI_MODEL')?.trim() || 'gemini-flash-latest';
   const modelName = model.startsWith('models/') ? model : `models/${model}`;
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1/${modelName}:generateContent`;
   const geminiUrl = `${endpoint}?key=${encodeURIComponent(apiKey)}`;
   console.error('extract-app-quote gemini_request', {
     model,
