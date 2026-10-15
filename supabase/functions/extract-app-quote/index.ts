@@ -343,7 +343,7 @@ async function handleExtract(req: Request): Promise<Response> {
     },
   };
 
-  const model = (Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.5-flash-lite').trim().replace(/^models\//, '');
+  const model = Deno.env.get('GEMINI_MODEL')?.trim() || 'gemini-1.5-flash';
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const url = `${endpoint}?key=${encodeURIComponent(apiKey)}`;
   console.error('extract-app-quote gemini_request', {
