@@ -111,8 +111,10 @@
     method_not_allowed: 'No se pudo llamar al extractor. Recarga la página.',
   };
 
+  const EXTRACT_TIMEOUT_MS = 45000;
   let propFile = null;
   let propBusy = false;
+  let propAbort = null;
 
   function copy() {
     return PROPOSAL_COPY[PROP_LANG] || PROPOSAL_COPY.en;
@@ -160,8 +162,64 @@
     setHidden($('propStepUpload'), n !== 1);
     setHidden($('propStepReview'), n !== 2);
     setHidden($('propStepPremiums'), n !== 3);
+    if (n === 1) {
+      const alert = $('propReviewAlert');
+      if (alert) { alert.hidden = true; alert.textContent = ''; }
+    }
+  }
+
+  function setExtracting(on) {
+    propBusy = !!on;
+    const extractBtn = $('propExtractBtn');
+    const drop = $('propDrop');
+    if (extractBtn) extractBtn.disabled = !!on || !propFile;
+    if (drop) {
+      drop.setAttribute('aria-busy', on ? 'true' : 'false');
+      drop.style.pointerEvents = on ? 'none' : '';
+    }
+  }
+
+  function fillPreparedBy() {
+    const prepared = $('prop-preparedBy');
+    if (prepared && isEmptyVal(prepared.value) && typeof sessionEmail === 'string') {
+      prepared.value = sessionEmail.replace(/@intruckscorp\.com$/i, '');
+      markField(prepared, false);
+    }
+  }
+
+  function openManualForm(alertHtml) {
+    applyExtracted({
+      applicant: emptyApplicant(),
+      commodities: [],
+      coverages: [],
+      drivers: [],
+      vehicles: [],
+      trailers: [],
+    });
+    fillPreparedBy();
+    setStep(2);
+    const alert = $('propReviewAlert');
+    if (alert) {
+      if (alertHtml) {
+        alert.hidden = false;
+        alert.innerHTML = alertHtml;
+      } else {
+        alert.hidden = true;
+        alert.textContent = '';
+      }
+    }
+    updateMissingBanner();
+  }
+
+  function skipToManual() {
+    if (propAbort) {
+      try { propAbort.abort(); } catch (_) { /* ignore */ }
+      propAbort = null;
+    }
+    setExtracting(false);
     const status = $('propExtractStatus');
-    if (status && n !== 1) status.innerHTML = '';
+    if (status) status.innerHTML = '';
+    openManualForm(escapeHtml('Ingreso manual. Completa los campos vacíos (ámbar) y continúa a primas.'));
   }
 
   function fileToBase64(file) {
@@ -187,30 +245,52 @@
     box.innerHTML = emptyStateHtml(kind, msgHtml);
   }
 
-  async function readFnError(error) {
-    let status = 0;
-    let code = 'extract_failed';
-    try {
-      if (error && error.context) {
-        status = Number(error.context.status) || 0;
-        if (typeof error.context.json === 'function') {
-          const body = await error.context.json();
-          if (body && typeof body.error === 'string') code = body.error;
-        }
-      }
-    } catch (_) { /* no PII — no body text */ }
-    if (!/^[a-z0-9_]{1,64}$/.test(code)) code = 'extract_failed';
-    return { status: status, code: code };
-  }
-
   function userMsg(code) {
     return ERROR_COPY[code] || ERROR_COPY.extract_failed;
   }
 
   function fnErrorHtml(status, code) {
-    const safe = /^[a-z0-9_]{1,64}$/.test(code) ? code : 'extract_failed';
+    const safe = /^[a-z0-9_]{1,64}$/.test(String(code || '')) ? String(code) : 'extract_failed';
     const tag = status ? ('Error ' + status + ' ' + safe) : ('Error ' + safe);
     return escapeHtml(tag) + '<br>' + escapeHtml(userMsg(safe));
+  }
+
+  async function callExtractFn(pdfBase64) {
+    const sessionPack = await sb.auth.getSession();
+    const token = sessionPack && sessionPack.data && sessionPack.data.session && sessionPack.data.session.access_token;
+    propAbort = new AbortController();
+    const timer = setTimeout(function () {
+      if (propAbort) propAbort.abort();
+    }, EXTRACT_TIMEOUT_MS);
+    try {
+      const res = await fetch(String(sb.supabaseUrl) + '/functions/v1/' + EXTRACT_FN, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + (token || ''),
+          apikey: String(sb.supabaseKey || ''),
+        },
+        body: JSON.stringify({ pdfBase64: pdfBase64 }),
+        signal: propAbort.signal,
+      });
+      let data = null;
+      try {
+        data = await res.json();
+      } catch (_) {
+        data = { error: 'extract_failed' };
+      }
+      if (!data || typeof data !== 'object') data = { error: 'extract_failed' };
+      return { res: res, data: data };
+    } catch (e) {
+      const aborted = e && (e.name === 'AbortError' || (propAbort && propAbort.signal.aborted));
+      return {
+        res: { ok: false, status: aborted ? 504 : 0 },
+        data: { error: 'extract_failed' },
+      };
+    } finally {
+      clearTimeout(timer);
+      propAbort = null;
+    }
   }
 
   function addRow(kind, data) {
@@ -531,41 +611,38 @@
   async function runExtract() {
     if (propBusy || !propFile) return;
     if (!sb) {
-      showExtractStatus('warn', 'No se pudo cargar el servicio de datos.');
+      openManualForm(escapeHtml('No se pudo cargar el servicio de datos. Ingresa los datos a mano.'));
       return;
     }
-    propBusy = true;
-    const btn = $('propExtractBtn');
-    if (btn) btn.disabled = true;
-    showExtractStatus('loader', 'Leyendo el APP QUOTE… esto puede tardar unos segundos.');
+    setExtracting(true);
+    showExtractStatus('loader', 'Leyendo el APP QUOTE… puedes omitir e ingresar los datos a mano.');
     try {
       const pdfBase64 = await fileToBase64(propFile);
-      const { data, error } = await sb.functions.invoke(EXTRACT_FN, {
-        body: { pdfBase64: pdfBase64 },
-      });
-      if (error) {
-        const fnErr = await readFnError(error);
-        showExtractStatus('warn', fnErrorHtml(fnErr.status, fnErr.code));
+      if (!propBusy) return;
+      const { res, data } = await callExtractFn(pdfBase64);
+      if (!propBusy) return;
+      if (!res.ok || (data && data.error)) {
+        openManualForm(fnErrorHtml(res.status, data && data.error));
         return;
       }
-      const extracted = data && data.data ? data.data : data;
+      const extracted = data && data.data;
       if (!extracted || (extracted.documentType && extracted.documentType !== 'APP_QUOTE')) {
-        showExtractStatus('warn', fnErrorHtml(422, 'not_app_quote'));
+        openManualForm(fnErrorHtml(res.status || 422, 'not_app_quote'));
         return;
       }
       applyExtracted(extracted);
-      const prepared = $('prop-preparedBy');
-      if (prepared && isEmptyVal(prepared.value) && typeof sessionEmail === 'string') {
-        prepared.value = sessionEmail.replace(/@intruckscorp\.com$/i, '');
-        markField(prepared, false);
-      }
+      fillPreparedBy();
       setStep(2);
+      const alert = $('propReviewAlert');
+      if (alert) { alert.hidden = true; alert.textContent = ''; }
       if (typeof track === 'function') track('proposal_extract', 'proposals', { ok: true });
     } catch (_) {
-      showExtractStatus('warn', userMsg('extract_failed'));
+      if (!propBusy) return;
+      openManualForm(fnErrorHtml(0, 'extract_failed'));
     } finally {
-      propBusy = false;
-      if (btn) btn.disabled = !propFile;
+      setExtracting(false);
+      const status = $('propExtractStatus');
+      if (status) status.innerHTML = '';
     }
   }
 
@@ -603,6 +680,11 @@
   }
 
   function resetAll() {
+    if (propAbort) {
+      try { propAbort.abort(); } catch (_) { /* ignore */ }
+      propAbort = null;
+    }
+    setExtracting(false);
     propFile = null;
     const input = $('propPdfInput');
     if (input) input.value = '';
@@ -638,6 +720,7 @@
     const input = $('propPdfInput');
     const drop = $('propDrop');
     const extractBtn = $('propExtractBtn');
+    const skipBtn = $('propSkipBtn');
     const toPrem = $('propToPremiumsBtn');
     const backReview = $('propBackReviewBtn');
     const pdfBtn = $('propPdfBtn');
@@ -662,6 +745,7 @@
       });
     }
     if (extractBtn) extractBtn.addEventListener('click', runExtract);
+    if (skipBtn) skipBtn.addEventListener('click', skipToManual);
     if (toPrem) toPrem.addEventListener('click', function () {
       updateMissingBanner();
       setStep(3);

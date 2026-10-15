@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const MAX_PDF_BYTES = 3_500_000;
 const ALLOWED_DOMAIN = 'intruckscorp.com';
+const GEMINI_TIMEOUT_MS = 40_000;
 
 function corsHeaders(_req: Request) {
   const allowed = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://cris-intrucks.github.io';
@@ -126,17 +127,23 @@ function sanitizeExtract(raw: unknown) {
 }
 
 function parseGeminiJson(text: string): unknown {
-  const trimmed = text.trim();
+  const trimmed = String(text || '').trim();
+  if (!trimmed) throw new Error('bad_json');
   try {
     return JSON.parse(trimmed);
   } catch {
+    /* continue */
+  }
+  try {
     const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
     if (fence) return JSON.parse(fence[1].trim());
     const start = trimmed.indexOf('{');
     const end = trimmed.lastIndexOf('}');
     if (start >= 0 && end > start) return JSON.parse(trimmed.slice(start, end + 1));
-    throw new Error('bad_json');
+  } catch {
+    /* fall through */
   }
+  throw new Error('bad_json');
 }
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -149,24 +156,28 @@ function isBoolish(v: unknown): boolean {
   return v == null || typeof v === 'boolean' || typeof v === 'string' || typeof v === 'number';
 }
 
-/** Collects invalid JSON paths only — never values. */
-function invalidExtractPaths(raw: unknown): string[] {
-  const paths: string[] = [];
+type PathSeg = string | number;
+type ValidationError = { issues: Array<{ path: PathSeg[] }> };
+
+function validateExtractJson(raw: unknown): { success: true } | { success: false; error: ValidationError } {
+  const issues: Array<{ path: PathSeg[] }> = [];
+  const add = (path: PathSeg[]) => { issues.push({ path }); };
+
   if (!isPlainObject(raw)) {
-    paths.push('(root)');
-    return paths;
+    add(['(root)']);
+    return { success: false, error: { issues } };
   }
-  if ('documentType' in raw && !isStrish(raw.documentType)) paths.push('documentType');
+  if ('documentType' in raw && !isStrish(raw.documentType)) add(['documentType']);
 
   const applicantSpec = [
     'legalName', 'dba', 'dotNumber', 'mcNumber', 'street', 'city', 'state', 'zip',
     'yearsInBusiness', 'entityType', 'phone', 'email', 'operationType', 'radius',
   ];
   if ('applicant' in raw) {
-    if (!isPlainObject(raw.applicant)) paths.push('applicant');
+    if (!isPlainObject(raw.applicant)) add(['applicant']);
     else {
       applicantSpec.forEach((k) => {
-        if (k in raw.applicant && !isStrish(raw.applicant[k])) paths.push('applicant.' + k);
+        if (k in raw.applicant && !isStrish(raw.applicant[k])) add(['applicant', k]);
       });
     }
   }
@@ -176,19 +187,18 @@ function invalidExtractPaths(raw: unknown): string[] {
     const arr = raw[key];
     if (arr == null) return;
     if (!Array.isArray(arr)) {
-      paths.push(key);
+      add([key]);
       return;
     }
     arr.forEach((row, i) => {
-      const p = key + '[' + i + ']';
       if (!isPlainObject(row)) {
-        paths.push(p);
+        add([key, i]);
         return;
       }
       Object.keys(spec).forEach((field) => {
         if (!(field in row)) return;
         const ok = spec[field] === 'bool' ? isBoolish(row[field]) : isStrish(row[field]);
-        if (!ok) paths.push(p + '.' + field);
+        if (!ok) add([key, i, field]);
       });
     });
   }
@@ -198,7 +208,9 @@ function invalidExtractPaths(raw: unknown): string[] {
   checkRows('drivers', { name: 'str', status: 'str', cdlClass: 'str', licenseState: 'str' });
   checkRows('vehicles', { year: 'str', make: 'str', model: 'str', vin: 'str', statedValue: 'str', gvw: 'str', unitType: 'str' });
   checkRows('trailers', { year: 'str', make: 'str', model: 'str', vin: 'str', statedValue: 'str', trailerType: 'str' });
-  return paths;
+
+  if (issues.length) return { success: false, error: { issues } };
+  return { success: true };
 }
 
 function isPdfBase64(b64: string): boolean {
@@ -218,7 +230,15 @@ function isModelUnavailable(status: number, err: { error?: { status?: string; co
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
+  try {
+    return await handleExtract(req);
+  } catch {
+    return jsonRes(req, 502, { error: 'extract_failed' });
+  }
+});
+
+async function handleExtract(req: Request): Promise<Response> {
+  if (req.method === 'OPTIONS') return jsonRes(req, 200, { ok: true });
   if (req.method !== 'POST') return jsonRes(req, 405, { error: 'method_not_allowed' });
 
   const authHeader = req.headers.get('Authorization') || '';
@@ -283,8 +303,13 @@ Deno.serve(async (req) => {
         'x-goog-api-key': geminiKey,
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
     });
-  } catch {
+  } catch (e) {
+    const name = e && typeof e === 'object' && 'name' in e ? String((e as { name?: string }).name) : '';
+    if (name === 'TimeoutError' || name === 'AbortError') {
+      return jsonRes(req, 504, { error: 'extract_failed' });
+    }
     return jsonRes(req, 502, { error: 'extract_failed' });
   }
 
@@ -309,18 +334,19 @@ Deno.serve(async (req) => {
   }
 
   const text = gemini?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
-  if (!text) return jsonRes(req, 502, { error: 'extract_failed' });
+  if (!text) return jsonRes(req, 422, { error: 'extraction_invalid' });
 
   let parsed: unknown;
   try {
     parsed = parseGeminiJson(text);
   } catch {
-    return jsonRes(req, 502, { error: 'extract_failed' });
+    return jsonRes(req, 422, { error: 'extraction_invalid' });
   }
 
-  const invalidPaths = invalidExtractPaths(parsed);
-  if (invalidPaths.length) {
-    console.error('extract-app-quote invalid_paths', invalidPaths.join(','));
+  const validated = validateExtractJson(parsed);
+  if (!validated.success) {
+    const paths = validated.error.issues.map((i) => i.path.join('.'));
+    console.error('extract-app-quote invalid_paths', paths.join(','));
     return jsonRes(req, 422, { error: 'extraction_invalid' });
   }
 
@@ -328,4 +354,4 @@ Deno.serve(async (req) => {
   if (data.documentType !== 'APP_QUOTE') return jsonRes(req, 422, { error: 'not_app_quote' });
 
   return jsonRes(req, 200, { data });
-});
+}

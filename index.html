@@ -998,12 +998,14 @@
             <p class="prop-file" id="propFileName">Ningún archivo seleccionado</p>
             <div class="prop-actions">
               <button type="button" class="search-btn" id="propExtractBtn" disabled>Extraer datos</button>
+              <button type="button" class="prop-secondary" id="propSkipBtn">Omitir extracción / Ingresar manualmente</button>
             </div>
           </div>
           <div id="propExtractStatus"></div>
         </div>
 
         <div id="propStepReview" hidden>
+          <div class="prop-missing-banner" id="propReviewAlert" hidden></div>
           <div class="prop-missing-banner" id="propMissingBanner" hidden></div>
           <div class="prop-card">
             <h3>Application Information</h3>
